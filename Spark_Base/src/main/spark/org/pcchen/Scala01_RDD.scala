@@ -24,7 +24,7 @@ object Scala01_RDD {
     //默认情况下，可以读取项目路径，也可以读取其它路径：HDFS
     //默认从文件中读取的数据都是字符串类型
     //读取文件时，传递的分区参数为最小分区数，但是不一定是这个分区数，取决于hadoop读取文件时分片规则
-    val fileRDD: RDD[String] = sc.textFile("Spark_Base/in", 8)
+    val fileRDD: RDD[String] = sc.textFile("Spark_Base/in", 11)
 
     fileRDD.saveAsTextFile("Spark_Base/output");
   }
