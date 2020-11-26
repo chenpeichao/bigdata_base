@@ -14,6 +14,11 @@ object Scala10_Oper9 {
     //生成数据，并对偶数进行输出
     val listRDD = sc.makeRDD(List(1, 2, 3, 4, 5, 2, 3));
 
-    listRDD.distinct(5).collect().foreach(println)
+    listRDD.glom().collect().foreach(x => {
+      x.foreach(println); println("-------")
+    })
+
+    //distinct中参数可以对新去重RDD的分区进行指定
+    listRDD.distinct().collect().foreach(println)
   }
 }
