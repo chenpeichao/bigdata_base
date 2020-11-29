@@ -1,4 +1,4 @@
-package main.spark.org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -15,7 +15,8 @@ object Scala10_Oper9 {
     val listRDD = sc.makeRDD(List(1, 2, 3, 4, 5, 2, 3));
 
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("-------")
+      x.foreach(println);
+      println("-------")
     })
 
     //distinct中参数可以对新去重RDD的分区进行指定

@@ -1,7 +1,7 @@
-package main.spark.org.pcchen
+package main.spark.org.pcchen.base_oper
 
-import org.apache.spark.{SparkConf, SparkContext}
 import org.apache.spark.rdd.RDD
+import org.apache.spark.{SparkConf, SparkContext}
 
 object Scala24_Oper23 {
   def main(args: Array[String]): Unit = {
@@ -14,7 +14,8 @@ object Scala24_Oper23 {
     val listRDD: RDD[Int] = sc.parallelize(1 to 20);
 
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("------")
+      x.foreach(println);
+      println("------")
     })
 
     listRDD.saveAsTextFile("Spark_Base/output_text")

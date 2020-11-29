@@ -1,4 +1,4 @@
-package main.spark.org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -17,7 +17,8 @@ object Scala17_Oper16 {
     val strRDD = sc.parallelize(List(("a", 2), ("d", 4), ("b", 3), ("a", 2)), 2);
 
     strRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("----");
+      x.foreach(println);
+      println("----");
     })
     val aggRDD: RDD[(String, Int)] = strRDD.aggregateByKey(1)(_ + _, _ + _)
     //

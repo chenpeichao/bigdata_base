@@ -1,4 +1,4 @@
-package org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -19,7 +19,8 @@ object Scala19_Oper18 {
 
     val listRDD = sc.parallelize(List(("a", 10), ("b", 10), ("a", 91), ("b", 93), ("a", 95), ("b", 98)), 2);
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("-------");
+      x.foreach(println);
+      println("-------");
     })
 
     //注意此处是否执行第三个参数与rdd是否只有唯一分区有关

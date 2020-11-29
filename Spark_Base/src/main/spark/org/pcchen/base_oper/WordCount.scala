@@ -1,4 +1,4 @@
-package org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -16,7 +16,7 @@ object WordCount {
     val sparkConf = new SparkConf();
     sparkConf.setAppName("ceek_wordCount")
     sparkConf.setMaster("local")
-//    sparkConf.set("spark.master", "local");
+    //    sparkConf.set("spark.master", "local");
 
     //2、创建spark上下文对象
     val sc: SparkContext = new SparkContext(sparkConf)

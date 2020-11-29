@@ -1,4 +1,4 @@
-package main.spark.org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -14,7 +14,8 @@ object Scala23_Oper22 {
     val listRDD: RDD[Int] = sc.parallelize(1 to 20);
 
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("------")
+      x.foreach(println);
+      println("------")
     })
 
     /*val sum: Int = listRDD.reduce(_ + _)

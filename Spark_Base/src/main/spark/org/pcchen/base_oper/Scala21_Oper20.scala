@@ -1,4 +1,4 @@
-package org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -21,7 +21,8 @@ object Scala21_Oper20 {
 
     val listRDD = sc.parallelize(List((1, "a"), (1, "d"), (2, "b"), (3, "c")), 2);
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("-------");
+      x.foreach(println);
+      println("-------");
     })
 
     val mapValuesRDD: RDD[(Int, String)] = listRDD.mapValues(x => x + "|||")

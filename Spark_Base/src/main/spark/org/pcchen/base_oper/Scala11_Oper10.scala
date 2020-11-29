@@ -1,4 +1,4 @@
-package org.pcchen
+package main.spark.org.pcchen.base_oper
 
 import org.apache.spark.rdd.RDD
 import org.apache.spark.{SparkConf, SparkContext}
@@ -19,7 +19,8 @@ object Scala11_Oper10 {
 
     //输出位1,2  3,4,5  6,7,8
     listRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("--------")
+      x.foreach(println);
+      println("--------")
     })
 
     val size: Int = listRDD.partitions.size
@@ -33,7 +34,8 @@ object Scala11_Oper10 {
 
     printf("分区后的总分区数为%d\t", coalesceRDD.partitions.size)
     coalesceRDD.glom().collect().foreach(x => {
-      x.foreach(println); println("======");
+      x.foreach(println);
+      println("======");
     })
   }
 }
