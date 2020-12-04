@@ -18,7 +18,7 @@ object SparkSQL05_UDF {
     /* val ds: Dataset[(Int, String, Int)] = listRDD.toDS()
      ds.show();*/
 
-    spark.udf.register("addOne", (x: Int) => x + 1)
+    /*spark.udf.register("addOne", (x: Int) => x + 1)
 
     val dataSet: Dataset[User] = listRDD.map(row => {
       User(row._1.toInt, row._2, row._3.toInt)
@@ -28,6 +28,17 @@ object SparkSQL05_UDF {
 
     spark.sql("select addOne(id) from user").show()
 
-    spark.stop();
+    spark.stop();*/
+
+    //与上面创建dataset等效
+    spark.udf.register("addOne", (x: Int) => x + 1)
+
+    val dataSet = listRDD.map(row => {
+      (row._1.toInt, row._2, row._3.toInt)
+    }).toDF("id", "name", "age");
+
+    dataSet.createOrReplaceTempView("user");
+
+    spark.sql("select addOne(id) from user").show()
   }
 }
