@@ -2,9 +2,7 @@ package org.pcchen.sql
 
 import org.apache.spark.SparkConf
 import org.apache.spark.sql._
-import org.apache.spark.sql.catalyst.plans.logical.Aggregate
 import org.apache.spark.sql.expressions.Aggregator
-import org.apache.spark.sql.types.DoubleType
 
 /**
   * 强类型用户自定义聚合函数
