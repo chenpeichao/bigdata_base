@@ -1,12 +1,3 @@
-{
-  "username": "xuda",
-  "age": 40
-}
-{
-  "username": "常遇春",
-  "age": 34
-}
-{
-  "username": "李文忠",
-  "age": 28
-}
+{"username": "xuda", "age": 40}
+{"username": "常遇春", "age": 34}
+{"username": "李文忠", "age": 28}
