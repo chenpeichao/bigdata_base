@@ -1,11 +1,7 @@
 package org.pcchen.producer;
 
-import kafka.admin.AdminUtils;
-import kafka.utils.ZkUtils;
-import org.apache.kafka.clients.admin.AdminClient;
 import org.apache.kafka.clients.producer.KafkaProducer;
 import org.apache.kafka.clients.producer.ProducerRecord;
-import org.apache.zookeeper.ZKUtil;
 
 import java.util.Properties;
 
