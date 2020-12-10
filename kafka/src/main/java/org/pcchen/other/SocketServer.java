@@ -26,6 +26,7 @@ public class SocketServer {
                 System.out.println("hello word" + i);
 
             }
+            bw.write("END");
             //bufferedwrite需要调用newLine方法，
             //flush方法必须添加
             bw.newLine();
