@@ -1,5 +1,6 @@
 package org.pcchen.stream
 
+import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.ReceiverInputDStream
 import org.apache.spark.streaming.{Seconds, StreamingContext}
@@ -16,6 +17,13 @@ object SparkStreaming04_Kafka {
     val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkStreaming04_Kafka");
 
     val streamingContext: StreamingContext = new StreamingContext(sparkConf, Seconds(3));
+
+    /*val kafkaParam: Map[String, String] = Map[String, String](
+      ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
+      ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
+      ConsumerConfig.GROUP_ID_CONFIG -> "sparkstreaming_demo",
+      ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> "10.10.32.60:9092"
+    )*/
 
     //启动后会反复消费kafka中的数据
     //从kafka中采集数据

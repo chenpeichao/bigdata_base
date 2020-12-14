@@ -31,7 +31,8 @@ object SparkStreaming05_UpdateState {
       //a就是获取到的消息数据Seq集合，b标识缓存
       case (seq, buffer) => {
         if (null != seq && seq.size > 0) {
-          val sum = seq.reduce(_ + _) // + b.getOrElse(5)
+          var sum = seq.reduce(_ + _) // + b.getOrElse(5)
+          sum = buffer.getOrElse(0) + sum;
           Option(sum)
         } else {
           buffer
