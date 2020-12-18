@@ -145,8 +145,9 @@ object MockDataGenerate {
     * @param dataDF    DataFrame
     */
   private def insertHive(spark: SparkSession, tableName: String, dataDF: DataFrame): Unit = {
-    spark.sql("DROP TABLE IF EXISTS " + tableName)
-    dataDF.write.saveAsTable(tableName)
+    //TODO: 对指定数据库的表进行操作(数据库后续优化为可配置)
+    spark.sql(" DROP TABLE IF EXISTS commerce." + tableName)
+    dataDF.write.saveAsTable(" commerce." + tableName)
   }
 
   val USER_VISIT_ACTION_TABLE = "user_visit_action"
@@ -161,10 +162,16 @@ object MockDataGenerate {
   def main(args: Array[String]): Unit = {
 
     // 创建Spark配置
-    val sparkConf = new SparkConf().setAppName("MockData").setMaster("local[*]");
-
+    val sparkConf = new SparkConf().setAppName("MockData").setMaster("local[*]").set("spark.ui.port", "8999");
+    //    System.setProperty("HADOOP_USER_NAME","weishu") //当idea为设置vm启动参数时-DHADOOP_USER_NAME=weishu，对hive数据写入是hdfs权限需加
     // 创建Spark SQL 客户端
-    val spark = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate()
+    val spark = SparkSession.builder()
+      .config(sparkConf)
+      //指定metastore的uri
+      .config("hive.metastore.uris", "thrift://10.10.32.60:9083")
+      //指定hive的warehouse目录
+      .config("spark.sql.warehouse.dir", "hdfs://10.10.32.60:9000/user/hive/warehouse/commerce.db")
+      .enableHiveSupport().getOrCreate()
 
     // 模拟数据
     val userVisitActionData = this.mockUserVisitActionData()

@@ -11,12 +11,17 @@ import org.apache.spark.sql.{DataFrame, Dataset, SparkSession}
 object SessionStat {
   def main(args: Array[String]): Unit = {
     val sparkConf = new SparkConf().setAppName("SessionStat").setMaster("local[*]")
+      .set("spark.ui.port", "8999") //用于设置spark的ui端口，避免easyvpn端口4040冲突
 
-    val sparkSession = SparkSession.builder().config(sparkConf).enableHiveSupport().getOrCreate();
+    val sparkSession = SparkSession.builder().config(sparkConf)
+      .config("hive.metastore.uris", "thrift://10.10.32.60:9083")
+      //指定hive的warehouse目录
+      .config("spark.sql.warehouse.dir", "hdfs://10.10.32.60:9000/user/hive/warehouse/commerce.db")
+      .enableHiveSupport().getOrCreate();
 
     import sparkSession.implicits._
 
-    val dataset: Dataset[UserVisitAction] = sparkSession.sql("select * from user_visit_action ").as[UserVisitAction]
+    val dataset = sparkSession.sql("select * from commerce.user_visit_action")
 
     dataset.take(10).foreach(println)
   }
