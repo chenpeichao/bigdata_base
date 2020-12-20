@@ -213,7 +213,7 @@ object StringUtils {
     * @return 是否为空
     */
   def isEmpty(str: String): Boolean = {
-    str == null || "".equals(str)
+    str == null || "".equals(str) || "".equals(str.trim)
   }
 
   /**
