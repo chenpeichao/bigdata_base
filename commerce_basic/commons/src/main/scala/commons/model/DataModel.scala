@@ -171,9 +171,9 @@ case class SessionDetail(taskid: String,
   */
 case class Top10Category(taskid: String,
                          categoryid: Long,
-                         clickCount: Long,
-                         orderCount: Long,
-                         payCount: Long)
+                         var clickCount: Long,
+                         var orderCount: Long,
+                         var payCount: Long)
 
 /**
   * Top10 Session
