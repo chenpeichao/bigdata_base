@@ -49,10 +49,9 @@ class MyAccumulator extends AccumulatorV2[String, util.ArrayList[String]] {
 
   //复制累加器状态
   override def copy(): AccumulatorV2[String, util.ArrayList[String]] = {
-    /*var myAccumulator = new MyAccumulator();
+    val myAccumulator = new MyAccumulator();
     myAccumulator.list = this.list
-    myAccumulator*/
-    new MyAccumulator();
+    myAccumulator
   }
 
   //重置累加器对象

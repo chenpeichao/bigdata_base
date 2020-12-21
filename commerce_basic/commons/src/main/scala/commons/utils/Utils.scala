@@ -380,6 +380,33 @@ object ValidUtils {
   }
 
   /**
+    * 校验数据中的指定字段，是否有值与参数字段的值相同
+    *
+    * @param checkStr 待查数据
+    * @param pattern  规则参数
+    * @return 校验结果
+    */
+  def inCheck(checkStr: String, pattern: String): Boolean = {
+    if (pattern == null) {
+      return true
+    }
+    val paramFieldValueSplited = pattern.split(",")
+
+    if (checkStr != null && checkStr != "-1") {
+      val dataFieldValueSplited = checkStr.split(",")
+
+      for (singleDataFieldValue <- dataFieldValueSplited) {
+        for (singleParamFieldValue <- paramFieldValueSplited) {
+          if (singleDataFieldValue.compareTo(singleParamFieldValue) == 0) {
+            return true
+          }
+        }
+      }
+    }
+    false
+  }
+
+  /**
     * 校验数据中的指定字段，是否在指定范围内
     *
     * @param data       数据
