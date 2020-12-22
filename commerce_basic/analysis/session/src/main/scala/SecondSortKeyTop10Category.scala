@@ -1,4 +1,4 @@
-case class SecondSortKeyTop10Category(categoryId: Long, clickCount: Long, orderCount: Long, payCount: Long) extends Comparable[SecondSortKeyTop10Category] {
+case class SecondSortKeyTop10Category(var categoryId: Long, var clickCount: Long, var orderCount: Long, var payCount: Long) extends Comparable[SecondSortKeyTop10Category] {
   override def compareTo(that: SecondSortKeyTop10Category): Int = {
     var compare = 0;
     if (!this.clickCount.equals(that.clickCount)) {

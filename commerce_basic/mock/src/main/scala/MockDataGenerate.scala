@@ -163,7 +163,7 @@ object MockDataGenerate {
 
     // 创建Spark配置
     val sparkConf = new SparkConf().setAppName("MockData").setMaster("local[*]").set("spark.ui.port", "8999");
-    //    System.setProperty("HADOOP_USER_NAME","weishu") //当idea为设置vm启动参数时-DHADOOP_USER_NAME=weishu，对hive数据写入是hdfs权限需加
+    //        System.setProperty("HADOOP_USER_NAME","weishu") //当idea为设置vm启动参数时-DHADOOP_USER_NAME=weishu，对hive数据写入是hdfs权限需加
     // 创建Spark SQL 客户端
     val spark = SparkSession.builder()
       .config(sparkConf)

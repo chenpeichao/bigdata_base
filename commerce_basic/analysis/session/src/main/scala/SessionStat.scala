@@ -3,12 +3,12 @@ import java.util.{Date, UUID}
 import Session01_StepVisitLength.{calculateStepLength, calculateVisitLength}
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{SessionAggrStat, UserInfo, UserVisitAction}
+import commons.model.{UserInfo, UserVisitAction}
 import commons.utils._
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{SaveMode, SparkSession}
+import org.apache.spark.sql.{SparkSession}
 
 /**
   *
@@ -68,6 +68,7 @@ object SessionStat {
     }
 
     Session03_Top10Categories(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
+    //    Session03_Top10Categories_Teacher(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
   }
 
   /**

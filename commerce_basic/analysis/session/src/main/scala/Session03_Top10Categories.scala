@@ -1,8 +1,10 @@
+import commons.conf.ConfigurationManager
+import commons.constant.Constants
 import commons.model.{Top10Category, UserVisitAction}
 import commons.utils.StringUtils
 import net.sf.json.JSONObject
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -41,15 +43,26 @@ object Session03_Top10Categories {
       case (categoryId, top10Category: Top10Category) => {
         (new SecondSortKeyTop10Category(top10Category.categoryid, top10Category.clickCount, top10Category.orderCount, top10Category.payCount), categoryId)
       }
-    }.sortByKey(false).take(10)
+    }.sortByKey(false).take(10);
 
-    //    fullCountRDD.sortBy{
-    //      case (categoryId, top10Category: Top10Category) => {
-    //        top10Category.clickCount
-    //      }
-    //    }.take(5).foreach(println)
+    val resultRDD: RDD[Top10Category] = sparkSession.sparkContext.makeRDD(sortKey2FullCountRDD).map {
+      case (secondSortKeyTop10Category, categoryId) => {
+        Top10Category(taskUUID, categoryId, secondSortKeyTop10Category.clickCount, secondSortKeyTop10Category.orderCount, secondSortKeyTop10Category.payCount)
+      }
+    }
+
+    import sparkSession.implicits._
+    resultRDD.toDF().write
+      .format("jdbc")
+      .option("url", ConfigurationManager.config.getString(Constants.JDBC_URL))
+      .option("user", ConfigurationManager.config.getString(Constants.JDBC_USER))
+      .option("password", ConfigurationManager.config.getString(Constants.JDBC_PASSWORD))
+      .option("dbtable", "top10_category_1222")
+      .mode(SaveMode.Append)
+      .save();
   }
 
+  //获取点击的品类统计[categoryId, clickCount]
   def getClickCount(sessionId2FilterActionRDD: RDD[(String, UserVisitAction)]): RDD[(Long, Long)] = {
     sessionId2FilterActionRDD.map {
       case (sessionId, userVisitAction: UserVisitAction) => {
@@ -58,6 +71,7 @@ object Session03_Top10Categories {
     }.reduceByKey(_ + _)
   }
 
+  //获取订单的品类统计[categoryId, orderCount]
   def getOrderCount(sessionId2FilterActionRDD: RDD[(String, UserVisitAction)]): RDD[(Long, Long)] = {
     sessionId2FilterActionRDD.flatMap {
       case (sessionId, userVisitAction: UserVisitAction) => {
@@ -71,6 +85,7 @@ object Session03_Top10Categories {
     }.map((_, 1l)).reduceByKey(_ + _)
   }
 
+  //获取支付的品类统计[categoryId, payCount]
   def getPayCount(sessionId2FilterActionRDD: RDD[(String, UserVisitAction)]): RDD[(Long, Long)] = {
     sessionId2FilterActionRDD.flatMap {
       case (sessionId, userVisitAction: UserVisitAction) => {
@@ -84,6 +99,7 @@ object Session03_Top10Categories {
     }.map((_, 1l)).reduceByKey(_ + _)
   }
 
+  //获取所有品类的key，value元素[categoryId, categoryId]
   def getCatetoriesAllInfoRDD(sessionId2FilterActionRDD: RDD[(String, UserVisitAction)]) = {
     val categoriesRDD: RDD[(Long, Long)] = sessionId2FilterActionRDD.flatMap {
       case (sessionId, userVisitAction) => {
@@ -108,7 +124,6 @@ object Session03_Top10Categories {
       }
     }
 
-    //    categoriesRDD.distinct().foreach(println)
     categoriesRDD.distinct()
   }
 }
