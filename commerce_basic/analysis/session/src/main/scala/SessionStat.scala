@@ -51,6 +51,7 @@ object SessionStat {
     sparkSession.sparkContext.register(sessionStatAccumulator, "SessionStatAccumulator");
 
     //获取满足过滤条件的filter数据---并进行累加器进行访问步长和访问时长的统计
+    //[sessionId, fullInfo[aggrInfo+userInfo]]
     val filt2FullInfoRDD: RDD[(String, String)] = getFilteredData(jsonObject, sessionStatAccumulator, sessionId2FullInfoRDD)
 
     filt2FullInfoRDD.count()
@@ -58,17 +59,18 @@ object SessionStat {
     /** 需求一：计算并保存session访问时长、步长并保存 */
     //    Session01_StepVisitLength(sparkSession, sessionStatAccumulator, jsonObject, taskUUID);
 
-    /** 需求二：session随机抽取 */
-    //    sessionId2FullInfoRDD.sample
+    /** 需求二：随机session抽取共100，计算每小时抽取的值 */
+    Session02_HourSampleSession(sparkSession, filt2FullInfoRDD, taskUUID);
 
     /** 需求三：Top10热门品类统计 */
     //将过滤后的[sessionId, userVisitAction]数据进行top10类别求解
     val sessionId2FilterActionRDD: RDD[(String, UserVisitAction)] = sessionId2ActionRDD.join(filt2FullInfoRDD).map {
       case (sessionId, (userAction, fullInfo)) => (sessionId, userAction)
     }
-
     Session03_Top10Categories(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
     //    Session03_Top10Categories_Teacher(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
+
+
   }
 
   /**
