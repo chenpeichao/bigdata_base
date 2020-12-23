@@ -9,7 +9,7 @@ import org.apache.spark.sql.{SaveMode, SparkSession}
 import scala.collection.mutable.ArrayBuffer
 
 object Session03_Top10Categories {
-  def apply(sparkSession: SparkSession, sessionId2FilterActionRDD: RDD[(String, UserVisitAction)], jsonObject: JSONObject, taskUUID: String): Unit = {
+  def apply(sparkSession: SparkSession, sessionId2FilterActionRDD: RDD[(String, UserVisitAction)], jsonObject: JSONObject, taskUUID: String) = {
     //获取所有的商品分类(categoryId, categoryId)，以此为基准进行左连接点击、订单、支付的品类，进行二次排序后，保存top10
     val categoriesRDD: RDD[(Long, Long)] = getCatetoriesAllInfoRDD(sessionId2FilterActionRDD)
 
@@ -60,6 +60,8 @@ object Session03_Top10Categories {
       .option("dbtable", "top10_category_1222")
       .mode(SaveMode.Append)
       .save();
+
+    resultRDD
   }
 
   //获取点击的品类统计[categoryId, clickCount]

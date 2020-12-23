@@ -3,12 +3,12 @@ import java.util.{Date, UUID}
 import Session01_StepVisitLength.{calculateStepLength, calculateVisitLength}
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{UserInfo, UserVisitAction}
+import commons.model.{Top10Category, UserInfo, UserVisitAction}
 import commons.utils._
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.{SparkSession}
+import org.apache.spark.sql.SparkSession
 
 /**
   *
@@ -67,10 +67,11 @@ object SessionStat {
     val sessionId2FilterActionRDD: RDD[(String, UserVisitAction)] = sessionId2ActionRDD.join(filt2FullInfoRDD).map {
       case (sessionId, (userAction, fullInfo)) => (sessionId, userAction)
     }
-    Session03_Top10Categories(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
+    val top10Categories: RDD[Top10Category] = Session03_Top10Categories(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
     //    Session03_Top10Categories_Teacher(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
 
-
+    /** 需求四：Top10热门品类下每个品类的Top10点击session */
+    Session04_Top10Categories2Top10SessionClickCount(sparkSession, top10Categories, filt2FullInfoRDD, taskUUID)
   }
 
   /**

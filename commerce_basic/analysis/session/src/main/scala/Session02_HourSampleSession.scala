@@ -3,6 +3,7 @@ import commons.utils.{DateUtils, StringUtils}
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
+@Deprecated
 object Session02_HourSampleSession {
   //[sessionId, fullInfo[aggrInfo+userInfo]]
   def apply(sparkSession: SparkSession, sessionId2FilterRDD: RDD[(String, String)], taskUUID: String) = {
