@@ -8,6 +8,7 @@ import commons.model.UserVisitAction
 import commons.utils.ParamUtils
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
 /**
@@ -32,7 +33,9 @@ object PageStat {
       .config("spark.sql.warehouse.dir", "hdfs://10.10.32.60:9000/user/hive/warehouse/commerce.db")
       .getOrCreate();
 
-    getActionRDD(sparkSession, taskParam).foreach(println)
+    val sessionId2ActionRDD: RDD[(String, UserVisitAction)] = getActionRDD(sparkSession, taskParam)
+
+    sessionId2ActionRDD.foreach(println)
   }
 
   def getActionRDD(sparkSession: SparkSession, taskParam: JSONObject) = {
@@ -42,6 +45,8 @@ object PageStat {
     val sql: String = "select * from commerce.user_visit_action where date > '" + startDate + "' and date < '" + endDate + "'";
 
     import sparkSession.implicits._
-    sparkSession.sql(sql).as[UserVisitAction].rdd
+    sparkSession.sql(sql).as[UserVisitAction].map(uservisitAction => {
+      (uservisitAction.session_id, uservisitAction)
+    }).rdd
   }
 }
