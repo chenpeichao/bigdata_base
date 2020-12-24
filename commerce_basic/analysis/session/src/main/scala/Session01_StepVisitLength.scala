@@ -3,7 +3,6 @@ import commons.constant.Constants
 import commons.model.SessionAggrStat
 import commons.utils.{NumberUtils, ParamUtils, StringUtils, ValidUtils}
 import net.sf.json.JSONObject
-import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.{SaveMode, SparkSession}
 
 import scala.collection.mutable

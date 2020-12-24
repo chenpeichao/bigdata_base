@@ -60,7 +60,7 @@ object SessionStat {
     //    Session01_StepVisitLength(sparkSession, sessionStatAccumulator, jsonObject, taskUUID);
 
     /** 需求二：随机session抽取共100，计算每小时抽取的值 */
-    Session02_HourSampleSession(sparkSession, filt2FullInfoRDD, taskUUID);
+    //    Session02_HourSampleSession(sparkSession, filt2FullInfoRDD, taskUUID);
 
     /** 需求三：Top10热门品类统计 */
     //将过滤后的[sessionId, userVisitAction]数据进行top10类别求解
@@ -71,7 +71,9 @@ object SessionStat {
     //    Session03_Top10Categories_Teacher(sparkSession, sessionId2FilterActionRDD, jsonObject, taskUUID)
 
     /** 需求四：Top10热门品类下每个品类的Top10点击session */
-    Session04_Top10Categories2Top10SessionClickCount(sparkSession, top10Categories, filt2FullInfoRDD, taskUUID)
+    //    Session04_Top10Categories2Top10SessionClickCount(sparkSession, top10Categories, sessionId2ActionRDD, taskUUID)
+
+    //    Session04_Top10Categories2Top10SessionClickCount_Teacher(sparkSession, taskUUID, sessionId2ActionRDD, top10Categories)
   }
 
   /**
