@@ -1,3 +1,5 @@
+package session
+
 import org.apache.spark.util.AccumulatorV2
 
 import scala.collection.mutable

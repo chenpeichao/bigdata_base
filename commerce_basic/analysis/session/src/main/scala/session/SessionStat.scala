@@ -1,6 +1,7 @@
+package session
+
 import java.util.{Date, UUID}
 
-import Session01_StepVisitLength.{calculateStepLength, calculateVisitLength}
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
 import commons.model.{Top10Category, UserInfo, UserVisitAction}
@@ -9,6 +10,7 @@ import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
+import session.Session01_StepVisitLength._
 
 /**
   *

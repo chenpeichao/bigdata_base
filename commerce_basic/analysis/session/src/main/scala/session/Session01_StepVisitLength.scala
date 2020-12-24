@@ -1,7 +1,9 @@
+package session
+
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
 import commons.model.SessionAggrStat
-import commons.utils.{NumberUtils, ParamUtils, StringUtils, ValidUtils}
+import commons.utils.NumberUtils
 import net.sf.json.JSONObject
 import org.apache.spark.sql.{SaveMode, SparkSession}
 

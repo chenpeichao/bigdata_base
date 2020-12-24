@@ -1,3 +1,5 @@
+package session
+
 import commons.constant.Constants
 import commons.utils.{DateUtils, StringUtils}
 import org.apache.spark.rdd.RDD

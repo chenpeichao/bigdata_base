@@ -1,5 +1,7 @@
+package session
+
 import commons.constant.Constants
-import commons.model.{Top10Category, UserVisitAction}
+import commons.model.UserVisitAction
 import commons.utils.StringUtils
 import net.sf.json.JSONObject
 import org.apache.spark.rdd.RDD

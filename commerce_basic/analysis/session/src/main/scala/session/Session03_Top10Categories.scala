@@ -1,3 +1,5 @@
+package session
+
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
 import commons.model.{Top10Category, UserVisitAction}
