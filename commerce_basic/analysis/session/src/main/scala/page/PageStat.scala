@@ -35,7 +35,10 @@ object PageStat {
 
     val sessionId2ActionRDD: RDD[(String, UserVisitAction)] = getActionRDD(sparkSession, taskParam)
 
-    sessionId2ActionRDD.foreach(println)
+    //    sessionId2ActionRDD.foreach(println)
+
+    /** 需求五：页面单跳转化率 */
+    Page01_PageConvertRate(sparkSession, sessionId2ActionRDD, taskParam, taskUUID);
   }
 
   def getActionRDD(sparkSession: SparkSession, taskParam: JSONObject) = {
