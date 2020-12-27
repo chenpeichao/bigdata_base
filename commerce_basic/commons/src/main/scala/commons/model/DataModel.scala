@@ -187,3 +187,12 @@ case class Top10Session(taskid: String,
                         categoryid: Long,
                         sessionid: String,
                         clickCount: Long)
+
+
+/**
+  * 页面转换率计算
+  *
+  * @param taskid
+  * @param convertRate
+  */
+case class PageSplitConvertRate(taskid: String, convertRate: String)

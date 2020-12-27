@@ -12,8 +12,6 @@ import org.apache.spark.rdd.RDD
 import org.apache.spark.sql.SparkSession
 
 /**
-  *
-  *
   * @author ceek
   * @create 2020-12-24 15:10
   **/
@@ -39,6 +37,7 @@ object PageStat {
 
     /** 需求五：页面单跳转化率 */
     Page01_PageConvertRate(sparkSession, sessionId2ActionRDD, taskParam, taskUUID);
+    //    Page01_PageConvertRate_Teacher(sparkSession, sessionId2ActionRDD, taskParam, taskUUID)
   }
 
   def getActionRDD(sparkSession: SparkSession, taskParam: JSONObject) = {

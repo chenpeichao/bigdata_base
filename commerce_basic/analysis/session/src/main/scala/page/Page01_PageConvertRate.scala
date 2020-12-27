@@ -1,14 +1,12 @@
 package page
 
+import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.UserVisitAction
-import commons.utils.ParamUtils
+import commons.model.{PageSplitConvertRate, UserVisitAction}
+import commons.utils.{DateUtils, ParamUtils}
 import net.sf.json.JSONObject
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
-
-import scala.collection.mutable
-import scala.collection.mutable.ArrayBuffer
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
 /**
   *
@@ -30,18 +28,28 @@ object Page01_PageConvertRate {
         x + "_" + y;
       }
     }
-    targetPageFlow.foreach(println)
+    //    targetPageFlow.foreach(println)
     val sessionId2GroupActionRDD: RDD[(String, Iterable[UserVisitAction])] = sessionId2ActionRDD.groupByKey()
 
     val pageIdConvert2Rdd: RDD[(String, Int)] = sessionId2GroupActionRDD.flatMap {
       case (sessionId, iters) => {
-        var pageIdArray = new mutable.ArrayBuffer[Long]()
+        //方法一：推荐
+        val sortPageIds = iters.toList.sortWith((x, y) => {
+          DateUtils.parseTime(x.action_time).getTime < DateUtils.parseTime(y.action_time).getTime
+        }).map(x => x.page_id)
+        //方法二：不推荐：尽量用广播变量
+        /*var sortPageIds = new mutable.ArrayBuffer[Long]()
+        iters.toList.sortWith((x,y) => {
+          DateUtils.parseTime(x.action_time).getTime < DateUtils.parseTime(y.action_time).getTime
+        }).map(x => sortPageIds += x.page_id)*/
 
-        for (iter <- iters) {
-          pageIdArray += iter.page_id
-        }
+        //错误方法：因其可能先点击页面3，在点击页面2，所以不经过时间排序直接求会有脏数据
+        //        var pageIdArray = new mutable.ArrayBuffer[Long]()
+        //        for (iter <- iters) {
+        //          pageIdArray += iter.page_id
+        //        }
+        //        val sortPageIds: ArrayBuffer[Long] = pageIdArray.sortWith((x, y) => x < y)
 
-        val sortPageIds: ArrayBuffer[Long] = pageIdArray.sortWith((x, y) => x < y)
 
         sortPageIds.slice(0, sortPageIds.length - 1).zip(sortPageIds.tail).map {
           case (pageIdLeft, pageIdRight) => {
@@ -51,7 +59,7 @@ object Page01_PageConvertRate {
       }
     }
 
-    val firstPageId: Long = targetPageFlowSplit(0).toLong
+    var firstPageId: Long = targetPageFlowSplit(0).toLong
 
     //第一页的访问量
     var firstPageSessionCount = sessionId2ActionRDD.filter {
@@ -64,47 +72,77 @@ object Page01_PageConvertRate {
 
     val pageIdConvert2CountRDD: RDD[(String, Int)] = pageIdConvert2Rdd.reduceByKey(_ + _)
 
-    var resultMap = new mutable.HashMap[String, Double]()
-
-    val pp: RDD[(String, Int)] = pageIdConvert2CountRDD.filter {
+    val correctConvert2CountRDD: RDD[(String, Int)] = pageIdConvert2CountRDD.filter {
       case (pageIdConvert, count) => {
         targetPageFlow.contains(pageIdConvert)
       }
     }
+    //    val resultMap = new mutable.HashMap[String, Double]()
 
-    val result = pp.sortByKey().map {
+    /*val resultRDD: Array[(String, Int)] = correctConvert2CountRDD.sortBy(x=> x._1.substring(0,1), true).collect()
+    val resultMap = new mutable.HashMap[String, Double]()
+    resultRDD.foreach {
       case (pageIdConvert, count) => {
         var doubleBeforeCount = firstPageSessionCount
+        val rate = count.toDouble / doubleBeforeCount
+        firstPageSessionCount = count
+        resultMap += ((pageIdConvert, rate))
+//        resultMap.put(pageIdConvert, rate)
+        (pageIdConvert, rate)
+      }
+    }*/
+    val result1 = correctConvert2CountRDD.sortBy(x => x._1.substring(0, 1), true).collect().map {
+      case (pageIdConvert, count) => {
+        var doubleBeforeCount = firstPageSessionCount
+        println(pageIdConvert + "=" + count + "/" + firstPageSessionCount)
+        val rate: Double = count.toDouble / doubleBeforeCount.toDouble
+        firstPageSessionCount = count
+        //        println("比率为" + pageIdConvert + "=>" + rate);
+        //          resultMap += ((pageIdConvert, rate))
+        (pageIdConvert, rate)
+        }
+    }
+    val result = correctConvert2CountRDD.sortBy(x => x._1.substring(0, 1), true).map {
+      case (pageIdConvert, count) => {
+        var doubleBeforeCount = firstPageSessionCount
+        println(pageIdConvert + "===========" + count + "/" + firstPageSessionCount)
         val rate: Double = count.toDouble / doubleBeforeCount.toDouble
         firstPageSessionCount = count
         //TODO: 此处为何多次打印
-        println("比率为" + pageIdConvert + "=>" + rate);
-        //TODO: 为何没有附上值
-        resultMap += ((pageIdConvert, rate))
+        //        println("比率为" + pageIdConvert + "=>" + rate);
+        //为何没有附上值---sparkRDD中算子的内部使用外部变量只能读，不能改变值
+        //          resultMap += ((pageIdConvert, rate))
         (pageIdConvert, rate)
       }
     }
-    /*
-        val result = pp.sortBy(x=> x._1.substring(0,1), true, 1).map {
-          case (pageIdConvert, count) => {
-            var doubleBeforeCount = firstPageSessionCount
-            val rate = count.toDouble / doubleBeforeCount
-            firstPageSessionCount = count
-            println("比率为" + pageIdConvert + "=>" + rate);
-            resultMap += ((pageIdConvert, rate))
-          }
-        }
-    */
 
+    //    result.foreach {
+    //      case (pageIdConvert, count) => {
+    //        println(pageIdConvert + "-->" + count + "\t")
+    //      }
+    //    }
 
-
-
-    result.foreach {
-      case (pageIdConvert, count) => {
-        println(pageIdConvert + "-->" + count + "\t")
+    val convertStr: String = result.map {
+      case (pageIdConvert, rate) => {
+        pageIdConvert + "=" + rate
       }
-    }
-    result.collect()
-    println("数据容量" + resultMap.size);
+    }.collect().mkString("|")
+
+    val pageSplitConvertRate = PageSplitConvertRate(taskUUID, convertStr);
+
+    val pageSplitConvertRateRDD: RDD[PageSplitConvertRate] = sparkSession.sparkContext.makeRDD(Array(pageSplitConvertRate))
+
+    import sparkSession.implicits._
+
+    pageSplitConvertRateRDD.toDF().write
+      .format("jdbc")
+      .option("url", ConfigurationManager.config.getString(Constants.JDBC_URL))
+      .option("dbtable", "page_split_convert_rate_1227")
+      .option("user", ConfigurationManager.config.getString(Constants.JDBC_USER))
+      .option("password", ConfigurationManager.config.getString(Constants.JDBC_PASSWORD))
+      .mode(SaveMode.Append)
+      .save()
+
+    //    println("数据容量" + resultMap.size);
   }
 }
