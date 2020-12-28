@@ -196,3 +196,23 @@ case class Top10Session(taskid: String,
   * @param convertRate
   */
 case class PageSplitConvertRate(taskid: String, convertRate: String)
+
+/**
+  * 城市品类点击
+  *
+  * @param city_id
+  * @param click_product_id
+  */
+case class CityClickProduct(city_id: Long,
+                            click_product_id: Long)
+
+/**
+  * 城市及对应区域信息
+  *
+  * @param city_id
+  * @param city_name
+  * @param area
+  */
+case class CityAreaInfo(city_id: Long,
+                        city_name: String,
+                        area: String)
