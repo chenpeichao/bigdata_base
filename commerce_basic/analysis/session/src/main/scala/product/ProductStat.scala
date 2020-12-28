@@ -34,13 +34,6 @@ object ProductStat {
       .config("spark.sql.warehouse.dir", "hdfs://10.10.32.60:9000/user/hive/warehouse/commerce.db")
       .getOrCreate()
 
-    val areaInfoArray = Array((0L, "北京", "华北"), (1L, "上海", "华东"), (2L, "南京", "华东"),
-      (3L, "广州", "华南"), (4L, "三亚", "华南"), (5L, "武汉", "华中"),
-      (6L, "长沙", "华中"), (7L, "西安", "西北"), (8L, "成都", "西南"),
-      (9L, "哈尔滨", "东北"))
-
-    val areaInfoRDD: RDD[(Long, String, String)] = sparkSession.sparkContext.makeRDD(areaInfoArray)
-
     //1.1、获取到有效城市维度商品点击数据RDD[CityClickProduct[cityId, productId]]
     val cityIdAndProductIdRDD: RDD[(Long, Long)] = getCityIdAndProductId(sparkSession, taskParam)
 
