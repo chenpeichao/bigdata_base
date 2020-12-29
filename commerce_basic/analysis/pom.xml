@@ -12,5 +12,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>session</module>
+        <module>advertising</module>
     </modules>
 </project>
