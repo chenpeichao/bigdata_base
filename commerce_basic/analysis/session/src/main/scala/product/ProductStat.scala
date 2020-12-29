@@ -4,11 +4,11 @@ import java.util.UUID
 
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{CityAreaInfo, CityClickProduct}
+import commons.model.{AreaTop3Product, CityAreaInfo, CityClickProduct}
 import net.sf.json.JSONObject
 import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{SaveMode, SparkSession}
 
 /**
   *
@@ -50,19 +50,42 @@ object ProductStat {
       cityId + splitStr + cityName
     })
     //3.2、定义udaf在group by中对于多行数据进行操作
-    sparkSession.udf.register("group_concat_distinct", new GroupConcatDistinctUDAF())
+    sparkSession.udf.register("group_concat_distinct", new GroupConcatDistinctUDAF)
     //地域商品点击数表(包含城市信息)tmp_area_click_count（area, pid, click_count, city_info）
     getAreaProductClickCountTable(sparkSession)
 
+    //4、关联商品表，进行商品名称及商品自营信息关联(tmp_area_count_product_info[area, click_count,pid,city_info,product_name,product_status])
     sparkSession.udf.register("get_json_field", (jsonStr: String, field: String) => {
       JSONObject.fromObject(jsonStr).getString(field)
     })
-
     getAreaProductClickCountInfo(sparkSession)
 
+    //5、分组排序-得到地域topN点击量的商品-通过开窗函数tmp_top3_product(area_level, area, click_count, pid, city_info, product_name, product_status)
+    getTop3Product(sparkSession)
 
+    //数据保存
+    val areaTop3ProductRDD: RDD[AreaTop3Product] = sparkSession.sql("select * from tmp_top3_product").rdd.map {
+      case row => {
+        AreaTop3Product(taskUUID,
+          row.getAs[String]("area"),
+          row.getAs[String]("area_level"),
+          row.getAs[Long]("pid"),
+          row.getAs[String]("city_info"),
+          row.getAs[Long]("click_count"),
+          row.getAs[String]("product_name"),
+          row.getAs[String]("product_status"))
+      }
+    }
+    import sparkSession.implicits._;
 
-
+    areaTop3ProductRDD.toDF().write
+      .format("jdbc")
+      .option("url", ConfigurationManager.config.getString(Constants.JDBC_URL))
+      .option("dbtable", "area_top3_product_1229")
+      .option("user", ConfigurationManager.config.getString(Constants.JDBC_USER))
+      .option("password", ConfigurationManager.config.getString(Constants.JDBC_PASSWORD))
+      .mode(SaveMode.Append)
+      .save()
 
 
 
@@ -70,16 +93,48 @@ object ProductStat {
     sparkSession.close();
   }
 
+  /**
+    * 分组内排序(使用row_number() over开窗函数)以及结合case when then...else...end
+    *
+    * @param sparkSession
+    */
+  def getTop3Product(sparkSession: SparkSession) = {
+    //row_number() over([ partition] order by...)[ partition内]连续递增顺序
+    //rank()  over([ partition...)[ partition内]跳跃排序 12244678
+    //dense_rank()  over([ partition...)[ partition内]不跳跃排序1223456
+    val sql = "select CASE " +
+      "WHEN area='华北' OR area='华东' THEN 'A_Level' " +
+      "WHEN area='华中' OR area='华南' THEN 'B_Level' " +
+      "WHEN area='西南' OR area='西北' THEN 'C_Level' " +
+      "ELSE 'D_Level' " +
+      "END area_level " +
+      " ,area, click_count, pid, city_info, product_name, product_status from (" +
+      " select area, click_count, pid, city_info, product_name, product_status" +
+      ", row_number() over (partition by area order by click_count desc) as rank " +
+      " from tmp_area_count_product_info" +
+      ") t where t.rank < 11"
+
+    sparkSession.sql(sql).createOrReplaceTempView("tmp_top3_product")
+  }
+
+  /**
+    * 关联地域商品点击表及商品表，进行商品名称的整合
+    *
+    * @param sparkSession
+    */
   def getAreaProductClickCountInfo(sparkSession: SparkSession) = {
     val sql = "select tacc.area, tacc.click_count, tacc.pid, tacc.city_info " +
-      ", pi.product_name," +
-      "case when get_json_field(pi.extend_info, 'product_status')='0' then 'self' else 'Third Party' end area_level" +
+      ", pi.product_name" +
+      //      ", case when get_json_field(pi.extend_info, 'product_status')='0' then 'self' else 'Third Party' end area_level" +
+      //      ", if(get_json_field(pi.extend_info, 'product_status') == 1, 'self', 'Third Party') area_level_2" +
+      ", if(get_json_field(pi.extend_info, 'product_status') = '0', 'self', 'Third Party') product_status" +
+      //      ", get_json_field(pi.extend_info, 'product_status') product_status" +
       " from tmp_area_click_count tacc" +
       " join commerce.product_info pi on tacc.pid = pi.product_id"
 
     sparkSession.sql(sql).createOrReplaceTempView("tmp_area_count_product_info")
 
-    sparkSession.sql("select * from tmp_area_count_product_info ").show()
+    //    sparkSession.sql("select * from tmp_area_count_product_info ").show()
   }
 
   /**
