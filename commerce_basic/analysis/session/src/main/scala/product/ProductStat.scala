@@ -54,10 +54,32 @@ object ProductStat {
     //地域商品点击数表(包含城市信息)tmp_area_click_count（area, pid, click_count, city_info）
     getAreaProductClickCountTable(sparkSession)
 
+    sparkSession.udf.register("get_json_field", (jsonStr: String, field: String) => {
+      JSONObject.fromObject(jsonStr).getString(field)
+    })
+
+    getAreaProductClickCountInfo(sparkSession)
+
+
+
+
+
 
 
     println(cityIdAndProductIdRDD.count())
     sparkSession.close();
+  }
+
+  def getAreaProductClickCountInfo(sparkSession: SparkSession) = {
+    val sql = "select tacc.area, tacc.click_count, tacc.pid, tacc.city_info " +
+      ", pi.product_name," +
+      "case when get_json_field(pi.extend_info, 'product_status')='0' then 'self' else 'Third Party' end area_level" +
+      " from tmp_area_click_count tacc" +
+      " join commerce.product_info pi on tacc.pid = pi.product_id"
+
+    sparkSession.sql(sql).createOrReplaceTempView("tmp_area_count_product_info")
+
+    sparkSession.sql("select * from tmp_area_count_product_info ").show()
   }
 
   /**
