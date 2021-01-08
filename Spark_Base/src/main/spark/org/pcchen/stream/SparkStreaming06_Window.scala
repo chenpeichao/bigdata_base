@@ -31,7 +31,9 @@ object SparkStreaming06_Window {
     //两个参数分别为滑动窗口大小和步长，大小均为采集周期的整数倍
     val windowDStream: DStream[(String, String)] = createStream.window(Seconds(6), Seconds(3))
 
-    val result: DStream[(String, Int)] = windowDStream.flatMap(line => line._2.split(" ")).map((_, 1)).reduceByKey(_ + _)
+    val result: DStream[(String, Int)] = windowDStream.flatMap(line => {
+      println(line._1 + "=>" + line._2); line._2.split(" ")
+    }).map((_, 1)).reduceByKey(_ + _)
 
     result.print();
 

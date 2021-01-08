@@ -1,20 +1,20 @@
 package org.pcchen.stream
 
-import org.apache.kafka.clients.consumer.ConsumerConfig
 import org.apache.spark.SparkConf
-import org.apache.spark.streaming.dstream.ReceiverInputDStream
-import org.apache.spark.streaming.{Seconds, StreamingContext}
+import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
 import org.apache.spark.streaming.kafka.KafkaUtils
+import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
   * sparkstreaming整合kafka
+  * receive模式
   *
   * @author ceek
   * @create 2020-12-11 14:24
   **/
 object SparkStreaming04_Kafka {
   def main(args: Array[String]): Unit = {
-    val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkStreaming04_Kafka");
+    /*val sparkConf = new SparkConf().setMaster("local[2]").setAppName("SparkStreaming04_Kafka");
 
     val streamingContext: StreamingContext = new StreamingContext(sparkConf, Seconds(3));
 
@@ -38,6 +38,37 @@ object SparkStreaming04_Kafka {
     createStream.print();
 
     streamingContext.start();
-    streamingContext.awaitTermination();
+    streamingContext.awaitTermination();*/
+
+    val sparkConf = new SparkConf().setAppName("").setMaster("local[*]")
+
+    val ssc: StreamingContext = new StreamingContext(sparkConf, Seconds(2))
+
+    val createStream: ReceiverInputDStream[(String, String)] = KafkaUtils.createStream(
+      ssc,
+      "10.10.32.60:2181,10.10.32.61:2181,10.10.32.62:2181", //zookeeper的地址中间不能添见空格
+      "sparkstreaming_demo2",
+      Map("sparkstreaming_test" -> 3)
+    )
+
+    val transform: DStream[(String, Int)] = createStream.transform {
+      row => {
+        row.flatMap {
+          line => {
+            line._2.split(" ").map((_, 1))
+          }
+        }
+      }
+    }
+    val result = transform.reduceByKey(_ + _)
+
+    /*val result: DStream[(String, Int)] = createStream.flatMap(line => {
+      line._2.split(" ").map((_, 1))
+    }).reduceByKey(_ + _)*/
+    result.print()
+
+    ssc.start();
+
+    ssc.awaitTermination()
   }
 }
