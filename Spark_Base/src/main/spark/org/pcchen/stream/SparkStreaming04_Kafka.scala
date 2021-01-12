@@ -2,7 +2,7 @@ package org.pcchen.stream
 
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.{DStream, ReceiverInputDStream}
-import org.apache.spark.streaming.kafka.KafkaUtils
+import org.apache.spark.streaming.kafka.{HasOffsetRanges, KafkaUtils, OffsetRange}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 
 /**
@@ -50,6 +50,20 @@ object SparkStreaming04_Kafka {
       "sparkstreaming_demo2",
       Map("sparkstreaming_test" -> 3)
     )
+
+    var offsetRanges: Array[OffsetRange] = Array.empty[OffsetRange] // 定义一个集合，用来存放偏移量的范围
+    createStream.transform {
+      rdd => {
+        offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+        rdd
+      }
+    }.foreachRDD {
+      rdd => {
+        for (o <- offsetRanges) {
+          println(s"${o.topic} ${o.partition} ${o.fromOffset} ${o.untilOffset}")
+        }
+      }
+    }
 
     val transform: DStream[(String, Int)] = createStream.transform {
       row => {

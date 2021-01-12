@@ -29,6 +29,16 @@ object SparkStreaming04_Kafka_Direct {
 
     val directStream: InputDStream[(String, String)] = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](streamingContext, kafkaParams, topicSet)
 
+
+    directStream.transform {
+      rdd => {
+        rdd.sortBy {
+          case (x, y) => {
+            x.length - y.length
+          }
+        }
+      }
+    }
     val result: DStream[(String, Int)] = directStream.flatMap(line => {
       line._2.split(" ").map((_, 1))
     }).reduceByKey(_ + _)
