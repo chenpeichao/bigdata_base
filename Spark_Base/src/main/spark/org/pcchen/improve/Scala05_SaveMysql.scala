@@ -2,7 +2,6 @@ package org.pcchen.improve
 
 import java.sql.{Connection, DriverManager, PreparedStatement}
 
-import com.mysql.jdbc.Connection
 import org.apache.spark.rdd.JdbcRDD
 import org.apache.spark.{SparkConf, SparkContext}
 
@@ -63,6 +62,8 @@ object Scala05_SaveMysql {
 
     dataRDD.foreachPartition {
       dataSet => {
+        //dataSetPartition.size 不能执行这个方法，否则下面的foreach方法里面会没有数据，
+        //因为iterator只能被执行一次
         val connection: java.sql.Connection = java.sql.DriverManager.getConnection(dbUrl, dbUsername, dbPassword)
         dataSet.foreach {
           case (username, age) => {
@@ -73,12 +74,13 @@ object Scala05_SaveMysql {
             prepareStatement.executeUpdate();
 
             prepareStatement.close();
-            connection.close();
           }
+        }
+        if (null != connection) {
+          connection.close();
         }
       }
     }
-
     //释放资源
     sc.stop();
   }
