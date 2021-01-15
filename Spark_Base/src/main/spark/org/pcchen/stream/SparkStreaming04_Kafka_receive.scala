@@ -33,22 +33,30 @@ object SparkStreaming04_Kafka_receive {
 
     val transform: DStream[(String, Int)] = key2SumStream.transform {
       row => {
-        println("没消费");
-        row.foreach(x => println(x._2 + "->" + x._1))
+        //必须在transform外调用action算子，否则无法触发方法执行
+        row.foreach(x => println("transform中执行====" + x._2 + "->" + x._1))
         row
       }
     }
 
-    transform.foreachRDD {
+    /*transform.foreachRDD {
       rdd => {
-        rdd.collect()
+//        rdd.collect()
+      }
+    }*/
+    //直接执行此算子，无法触发
+    val count: DStream[Long] = transform.count()
+
+    count.transform {
+      size => {
+        println("===" + size)
+        size
       }
     }
 
     key2SumStream.foreachRDD {
       rdd => {
-        println("-执行-");
-        rdd.collect().foreach(println)
+        rdd.collect().foreach(x => println("foreachRDD中执行====" + x._2 + "->" + x._1))
       }
     }
 
