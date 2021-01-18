@@ -1,11 +1,12 @@
-import org.apache.kafka.clients.consumer.ConsumerConfig
+import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
+import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.kafka010.{ConsumerStrategies, KafkaUtils, LocationStrategies}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.apache.spark.{SparkConf, SparkContext}
 
 /**
-  *
+  * spark-kafka-0.10
   *
   * @author ceek
   * @create 2021-01-12 15:58
@@ -24,7 +25,7 @@ object SparkStreaming_Local {
 
     val bootstrapServers = "10.10.32.60:9093,10.10.32.61:9093,10.10.32.62:9093";
     val groupId = "spark_local_kafka-test-group";
-    val topicName = "spark_local_topic";
+    val topicName = "topic_spark_direct_auto_offset";
     val maxPoll = 500
     val kafkaParams = Map(
       ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG -> bootstrapServers,
@@ -37,34 +38,49 @@ object SparkStreaming_Local {
       ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> "false"
     )
 
-    val kafkaTopicDS = KafkaUtils.createDirectStream(
+    val kafkaTopicDS: InputDStream[ConsumerRecord[String, String]] = KafkaUtils.createDirectStream(
       ssc,
       LocationStrategies.PreferConsistent,
       ConsumerStrategies.Subscribe[String, String](Array(topicName), kafkaParams)
     )
-    /*println("获取到数据了======================");
-    val transform1 = kafkaTopicDS.transform {
+    println("获取到数据了======================");
+    val transform1: DStream[ConsumerRecord[String, String]] = kafkaTopicDS.transform {
       row => {
         row.map {
           item => {
-            println(item.value())
-            item
+            //            println("------------" + item.value())
+            //TODO:pcchen 不打印？
+            println("------------" + item.value() + "------------")
           }
         }
+        row
       }
     }
-    transform1.foreachRDD(x => {
-      println(x)
-    })
+    val transform2: DStream[ConsumerRecord[String, String]] = transform1.transform {
+      row => {
+        println(row.map(_.offset()).collect().mkString(","))
+        println(row.map(_.value()).collect().mkString(","))
+        println(row.map(_.key()).collect().mkString("="))
+        row
+      }
+    }
 
-    transform1.transform{
+    kafkaTopicDS.foreachRDD {
+      row => {
+        row.foreach(x => println("============" + x.value()))
+        row
+      }
+    }
+    //    transform1.print()
+
+    /*transform1.transform{
       row => {
         val map: RDD[String] = row.map(_.value())
         map.foreach(x => println("日志打印"  + x))
         row
       }
     }*/
-    kafkaTopicDS.map(_.value)
+    /*kafkaTopicDS.map(_.value)
       .flatMap(_.split(" "))
       .map(x => (x, 1L))
       .reduceByKey(_ + _)
@@ -72,7 +88,22 @@ object SparkStreaming_Local {
         val sortData = data.sortBy(_._2, false)
         sortData
       })
-      .print()
+      .print()*/
+
+    /*val transform: DStream[(String, Long)] = kafkaTopicDS.map(_.value)
+      .flatMap(_.split(" "))
+      .map(x => (x, 1L))
+      .reduceByKey(_ + _)
+      .transform(data => {
+        val sortData = data.sortBy(_._2, false)
+        sortData
+      })
+    transform.foreachRDD{
+      row => {
+//        row.foreach(x => println(x._2 + "->" + x._1))
+        row.foreach(x => println(x._1 + "->" + x._2.toInt))
+      }
+    }*/
 
     ssc.start();
     ssc.awaitTermination();
