@@ -9,7 +9,7 @@ import org.apache.spark.streaming.{Seconds, StreamingContext}
   * streaming-kafka-0.8 receive模式(streaming-kafka-0.10参考commerce_basic/analysis/advertising/streaming_kafka)
   * 0.8中receive版本：0.10版本参考commerce_basic项目的advertising/streaming_kafka下
   * offset保存在zookeeper中，会自动提交
-  * 使用高阶api，KafkaUtils.createStream;
+  * 使用高阶api，KafkaUtils.createStream创建;
   * 服务重启后会从上次提交的offset处接着读取数据
   *
   * @author ceek
