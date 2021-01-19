@@ -34,17 +34,17 @@ public class CustomProducer {
     public static void main(String[] args) {
         Properties conf = new Properties();
 //        conf.put("--broker-list","192.168.0.30:9094");
-        conf.put("bootstrap.servers", "10.10.32.60:9092");
+        conf.put("bootstrap.servers", "10.10.32.60:9093");
 //        conf.put("zookeeper","192.168.0.28:2181");
         conf.put("acks", "all");
 //        conf.put("topic", args[0]);
         conf.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         conf.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
-
+        String topic = "topic_spark_direct_10";
         KafkaProducer kafkaClient = new KafkaProducer<String, String>(conf);
-        for (int i = 0; i < 10; i++) {
-            kafkaClient.send(new ProducerRecord<String, String>("number", Integer.toString(i), Integer.toString(i + 1)));
+        for (int i = 0; i < 3; i++) {
+            kafkaClient.send(new ProducerRecord<String, String>(topic, Integer.toString(i), "测试数据" + Integer.toString(i + 1)));
             System.out.println("HIVE SEND ONE MESSAGE");
         }
         kafkaClient.close();

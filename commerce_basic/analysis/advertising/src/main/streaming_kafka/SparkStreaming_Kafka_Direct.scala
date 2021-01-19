@@ -15,6 +15,7 @@ object SparkStreaming_Kafka_Direct {
     val sparkConf = new SparkConf().setAppName("SparkStreaming_Kafka_Direct").setMaster("local[*]");
 
     val ssc = new StreamingContext(sparkConf, Seconds(3))
+    //当有状态计算的算子时，需要添加此行
     ssc.checkpoint("e:\\checkpoint")
 
     val kafkaParams = Map[String, Object](
@@ -32,22 +33,12 @@ object SparkStreaming_Kafka_Direct {
       ConsumerStrategies.Subscribe[String, String](topicSet, kafkaParams)
     );
 
-    /*dataStream.foreachRDD{
-      rdd => {
-        rdd.foreach{
-          row => {
-            println("数据为：" + row.value())
-            println("key为：" + row.key())
-          }
-        }
-      }
-    }*/
-
+    //有状态计算时：注意设置checkpoint
     val key: DStream[(String, Int)] = dataStream.map(_.value()).map((_, 1)).updateStateByKey {
       case (seq, buffer) => {
         if (null != seq && seq.size > 0) {
-          var sum = seq.reduce(_ + _) // + b.getOrElse(5)
-          sum = buffer.getOrElse(0) + sum;
+          var sum = seq.reduce(_ + _);
+          sum = buffer.getOrElse(0) + sum
           Option(sum)
         } else {
           buffer
