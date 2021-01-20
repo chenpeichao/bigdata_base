@@ -49,10 +49,13 @@ object SparkStreaming_Local {
         row.map {
           item => {
             //            println("------------" + item.value())
-            //TODO:pcchen 不打印？
+            //不打印？---因其不是在driver端执行，所以打印看不到，如果在map碗面就可以或者是foreach算子就可以
             println("------------" + item.value() + "------------")
           }
         }
+        row.foreach(x => {
+          println("------------foreach-----" + x.value() + "------------")
+        })
         row
       }
     }
@@ -65,7 +68,7 @@ object SparkStreaming_Local {
       }
     }
 
-    kafkaTopicDS.foreachRDD {
+    transform2.foreachRDD {
       row => {
         row.foreach(x => println("============" + x.value()))
         row

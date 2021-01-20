@@ -2,8 +2,8 @@ package org.pcchen.stream
 
 import kafka.common.TopicAndPartition
 import kafka.message.MessageAndMetadata
-import kafka.serializer.{DefaultDecoder, StringDecoder}
-import kafka.utils.ZKGroupTopicDirs
+import kafka.serializer.{StringDecoder}
+import kafka.utils.{ZKGroupTopicDirs, ZkUtils}
 import org.I0Itec.zkclient.ZkClient
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
@@ -23,7 +23,7 @@ object SparkStreaming04_Kafka_Direct_ZK_offset {
     val streamingContext = new StreamingContext(sparkConf, Seconds(3))
 
 
-    val groupId = "group_topic_spark_direct__zk_offset";
+    val groupId = "group_topic_spark_direct_zk_offset";
     val topic = "topic_spark_direct_auto_offset";
     val topics = Set[String](topic)
     var zookeeper = "10.10.32.60:2181,10.10.32.61:2181,10.10.32.62:2181";
@@ -33,7 +33,6 @@ object SparkStreaming04_Kafka_Direct_ZK_offset {
       "auto.offset.reset" -> "smallest", //smallest   largest
       "auto.commit.enable" -> "false" //不生效
     )
-
 
     var offsetRanges = Array.empty[OffsetRange]
     var kafkaStream: InputDStream[(String, String)] = null
@@ -57,20 +56,24 @@ object SparkStreaming04_Kafka_Direct_ZK_offset {
       kafkaStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](streamingContext, kafkaParams, topics)
     }
 
-
-    val lines: DStream[String] = kafkaStream
-      .transform { rdd =>
-        //offsetRanges打印信息为：OffsetRange(topic: 'topic_spark_direct_auto_offset', partition: 0, range: [17 -> 17])->...
-        offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
-        //TODO:pcchen 此处应该讲offset保存到zk中https://blog.csdn.net/wjt199866/article/details/107263160
-        println(offsetRanges.mkString("->"))
-
-        rdd
-      }.map(line => line._2)
-
-    lines.foreachRDD {
+    //进行数据处理的操作(省略)
+    kafkaStream.map(line => line._2).foreachRDD {
       rdd => {
         rdd.collect().foreach(x => println("输出字符串为：" + x))
+      }
+    }
+
+    //进行offset的更新
+    kafkaStream.foreachRDD {
+      rdd => {
+        //offsetRanges打印信息为：OffsetRange(topic: 'topic_spark_direct_auto_offset', partition: 0, range: [17 -> 17])->...
+        offsetRanges = rdd.asInstanceOf[HasOffsetRanges].offsetRanges
+        for (o <- offsetRanges) {
+          val zkPath = s"${topicDirs.consumerOffsetDir}/${o.partition}"
+          println(zkPath + "=>" + o.untilOffset);
+          //TODO:pcchen 保存到zk中的offset乱码，不影响使用-呲牙
+          ZkUtils.updatePersistentPath(zkClient, zkPath, new java.lang.String(o.untilOffset.toString.getBytes("utf-8"), "utf-8"))
+        }
       }
     }
 
