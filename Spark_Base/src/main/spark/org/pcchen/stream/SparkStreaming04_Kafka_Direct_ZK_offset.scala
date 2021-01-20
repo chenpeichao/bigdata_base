@@ -55,7 +55,20 @@ object SparkStreaming04_Kafka_Direct_ZK_offset {
     } else {
       kafkaStream = KafkaUtils.createDirectStream[String, String, StringDecoder, StringDecoder](streamingContext, kafkaParams, topics)
     }
-
+    /*kafkaStream.map(m => (m._1,m._2))
+    kafkaStream.transform(t => {
+      offsetRanges = t.asInstanceOf[HasOffsetRanges].offsetRanges
+      t
+    }).map(m => (m._1,m._2))
+      .foreachRDD(rdd => {
+        rdd.foreachPartition(fp => {
+          val o = offsetRanges(TaskContext.get.partitionId)
+          fp.foreach(f => {
+//            println(s"topic: ${o.topic} partition: ${o.partition} fromOffset: ${o.fromOffset} untilOffset: ${o.untilOffset}")
+            println(o.topic + "=>" + f)
+          })
+        })
+      })*/
     //进行offset的更新
     val offsetTranstorm = kafkaStream.transform {
       rdd => {
@@ -67,9 +80,17 @@ object SparkStreaming04_Kafka_Direct_ZK_offset {
     }
 
     //进行数据处理的操作(省略)
-    offsetTranstorm.map(line => line._2).foreachRDD {
+    offsetTranstorm.map(line => (line._1, line._2)).foreachRDD {
       rdd => {
-        rdd.collect().foreach(x => println("输出字符串为：" + x))
+        //        println(TaskContext.get.partitionId)
+        println(offsetRanges)
+        //        rdd.collect().foreach(x => println("输出字符串为：" + x))
+        rdd.foreach {
+          row => {
+            //            println(s"topic: ${o.topic} partition: ${o.partition} fromOffset: ${o.fromOffset} untilOffset: ${o.untilOffset}")
+            println("数据内容为" + row)
+          }
+        }
       }
     }
 
