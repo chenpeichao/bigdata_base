@@ -23,6 +23,8 @@ object SparkStreaming_Kafka_Direct {
       ConsumerConfig.GROUP_ID_CONFIG -> "group_sparkstreaming_direct10_test",
       ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
       ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG -> "org.apache.kafka.common.serialization.StringDeserializer",
+      //spark-kafka0.10默认enable.auto.commit为true
+      ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG -> "false",
       ConsumerConfig.AUTO_OFFSET_RESET_CONFIG -> "earliest"
     )
     val topicSet = Set("topic_spark_direct_10");
