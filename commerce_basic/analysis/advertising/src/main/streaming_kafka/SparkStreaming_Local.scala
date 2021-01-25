@@ -71,7 +71,6 @@ object SparkStreaming_Local {
     transform2.foreachRDD {
       row => {
         row.foreach(x => println("============" + x.value()))
-        row
       }
     }
     //    transform1.print()
