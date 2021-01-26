@@ -27,13 +27,13 @@ object MockRealTimeData {
     val random = new Random()
     // 模拟实时数据：
     // timestamp province city userid adid
-    for (i <- 0 to 50) {
+    for (i <- 0 to 1) {
 
       val timestamp = System.currentTimeMillis()
       val province = random.nextInt(10)
       val city = province
-      val adid = random.nextInt(20)
-      val userid = random.nextInt(100)
+      val adid = random.nextInt(10)
+      val userid = random.nextInt(20)
 
       // 拼接实时数据
       array += timestamp + " " + province + " " + city + " " + userid + " " + adid
@@ -64,12 +64,15 @@ object MockRealTimeData {
     // 创建Kafka消费者
     val kafkaProducer = createKafkaProducer(broker)
 
+    var i = 0;
     while (true) {
       // 随机产生实时数据并通过Kafka生产者发送到Kafka集群中
       for (item <- generateMockData()) {
+        i += 1;
         kafkaProducer.send(new ProducerRecord[String, String](topic, item))
+        println("打印了【" + i + "】个数据");
       }
-      Thread.sleep(5000)
+      Thread.sleep(2000)
     }
   }
 }
