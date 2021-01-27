@@ -18,7 +18,7 @@ import scala.collection.mutable.ArrayBuffer
 object AdverStat {
   def main(args: Array[String]): Unit = {
 
-    val sparkConf = new SparkConf().setAppName("AdverStat").setMaster("local[*]")
+    val sparkConf = new SparkConf().setAppName("AdverStat").setMaster("local[3]")
       //      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.ui.port", "8999") //用于设置spark的ui端口，避免easyvpn端口4040冲突
 
@@ -67,9 +67,61 @@ object AdverStat {
 
     //adRealTimeDStream:DStream[RDD,RDD,RDD....]=>RDD[message] => message[(key, value)]
     // timestamp + " " + province + " " + city + " " + userid + " " + adid
+    //1、首先获取到kafka消息中的message信息
     val adReadTimeValueDStream: DStream[String] = adRealTimeDStream.map(item => item.value())
 
-    val userKeyCount: DStream[(String, Int)] = adReadTimeValueDStream.map {
+    //2、过滤掉黑名单中已经包含的访问日志
+    val adRealTimeFilterDStream: DStream[String] = adReadTimeValueDStream.transform {
+      rdd => {
+        //查询黑名单中所有数据
+        val allBlackList: Array[AdBlacklist] = AdBlacklistDAO.findAll();
+        val userIdArrayBlackList: Array[Long] = allBlackList.map(adBlackList => adBlackList.userid)
+
+        rdd.filter {
+          row => {
+            val splitMessage: Array[String] = row.split(" ")
+            !userIdArrayBlackList.contains(splitMessage(3).toLong)
+          }
+        }
+      }
+    }
+
+    //需求7：维护黑名单
+    generateBlackList(adRealTimeFilterDStream)
+
+
+
+    /*dataStream.map(row => (row.topic(), row.value())).foreachRDD{
+      row1 => row1.foreachPartition{
+        row => {
+          //用来打印当前数据的分区信息
+          val offsetRange: OffsetRange = offsetRanges(TaskContext.get.partitionId)
+//          println("topic=>" + offsetRange.topic + "&" + offsetRange.partition)
+          //TODO:pcchen foreachPartition中不能适用row.size， 因为iterator只能被执行一次
+//          println("row.size===========" + row.size)
+          row.foreach{
+            line => {
+              println(offsetRange.topic + "&" + offsetRange.partition + "value=" + line);
+              println(line);
+            }
+          }
+        }
+      }
+    }*/
+
+    streamingContext.start();
+    streamingContext.awaitTermination();
+  }
+
+  /**
+    * 实时维护黑名单信息
+    *
+    * @param adRealTimeFilterDStream
+    */
+  def generateBlackList(adRealTimeFilterDStream: DStream[String]): Unit = {
+    //1、将访问日志进行(key，1)模式累加
+    //timestamp + " " + province + " " + city + " " + userid + " " + adid
+    val key2CountDStream: DStream[(String, Int)] = adRealTimeFilterDStream.map {
       lines => {
         val splitLine: Array[String] = lines.split(" ")
         val timeStamp = splitLine(0).toLong
@@ -81,48 +133,64 @@ object AdverStat {
       }
     }.reduceByKey(_ + _)
 
-    val filterUserKey: DStream[(String, Int)] = userKeyCount.filter {
+    //2、更新访问日志到表中
+    key2CountDStream.foreachRDD{
       row => {
-        //查询黑名单所有数据
-        val allBlackList: Array[AdBlacklist] = AdBlacklistDAO.findAll();
-        val userIdBlackArray: Array[Long] = allBlackList.map {
-          adBlack => {
-            adBlack.userid
+        row.foreachPartition {
+          part => {
+            part.foreach {
+              line => {
+                val userId = line._1.split("_")(0).toLong;
+                val date = line._1.split("_")(1);
+                val addid = line._1.split("_")(2);
+                val count = line._2.toLong;
+
+                val adUserClickCount = Array(AdUserClickCount(date, userId, addid.toLong, count))
+
+                AdUserClickCountDAO.updateBatch(adUserClickCount);
+              }
+            }
           }
-        }
-        println(userIdBlackArray.mkString(","))
-        println(row._1.split("_")(0).toLong)
-        if (userIdBlackArray.contains(row._1.split("_")(0).toLong)) {
-          println("包含了黑名单");
-          false
-        } else {
-          true
         }
       }
     }
+    //过滤得到点击数超标的记录，用于更新黑名单表
+    val key2BlackListDStream: DStream[(String, Int)] = key2CountDStream.filter {
+      row => {
+        val userId: Long = row._1.split("_")(0).toLong;
+        val date: String = row._1.split("_")(1);
+        val addId: Long = row._1.split("_")(2).toLong;
 
-    val blacklists = new ArrayBuffer[AdBlacklist]()
-    filterUserKey.foreachRDD {
+        val count: Int = AdUserClickCountDAO.findClickCountByMultiKey(date, userId, addId);
+
+        if (count > 20) {
+          true
+        } else {
+          false
+        }
+      }
+    }
+    //需要去重
+    val userIdDStream: DStream[String] = key2BlackListDStream.map {
+      row => {
+        row._1.split("_")(0)
+      }
+      //此为全局去重
+    }.transform(r => r.distinct())
+
+    //添加黑名单表数据
+    userIdDStream.foreachRDD{
       rdd => {
-        rdd.foreachPartition {
+        rdd.foreachPartition{
           part => {
-            //            val blacklists: Array[AdBlacklist] = Array.empty[AdBlacklist]
+            val blacklists = new ArrayBuffer[AdBlacklist]()
             part.foreach {
-              userKey => {
-                val keyCount: Int = AdUserClickCountDAO.findClickCountByMultiKey(userKey._1.split("_")(1), userKey._1.split("_")(0).toLong, userKey._1.split("_")(2).toLong)
-
-                val sum = keyCount + userKey._2
-                if (sum > 20) {
-                  val userId: Long = userKey._1.split("_")(0).toLong
-                  blacklists += AdBlacklist(userId);
-                }
-                val adUserClickCount: AdUserClickCount = AdUserClickCount(userKey._1.split("_")(1), userKey._1.split("_")(0).toLong, userKey._1.split("_")(2).toLong, userKey._2)
-
-                AdUserClickCountDAO.updateBatch(Array(adUserClickCount))
-                AdBlacklistDAO.insertBatch(blacklists.distinct.toArray)
+              userId => {
+                blacklists += AdBlacklist(userId.toLong)
               }
             }
-            //            blacklists.distinct
+            println(blacklists.mkString(","))
+            AdBlacklistDAO.insertBatch(blacklists.toArray)
           }
         }
       }
@@ -151,29 +219,5 @@ object AdverStat {
         }
       }
     }*/
-
-
-
-
-    /*dataStream.map(row => (row.topic(), row.value())).foreachRDD{
-      row1 => row1.foreachPartition{
-        row => {
-          //用来打印当前数据的分区信息
-          val offsetRange: OffsetRange = offsetRanges(TaskContext.get.partitionId)
-//          println("topic=>" + offsetRange.topic + "&" + offsetRange.partition)
-          //TODO:pcchen foreachPartition中不能适用row.size， 因为iterator只能被执行一次
-//          println("row.size===========" + row.size)
-          row.foreach{
-            line => {
-              println(offsetRange.topic + "&" + offsetRange.partition + "value=" + line);
-              println(line);
-            }
-          }
-        }
-      }
-    }*/
-
-    streamingContext.start();
-    streamingContext.awaitTermination();
   }
 }
