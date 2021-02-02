@@ -2,7 +2,7 @@ import java.util.Date
 
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{AdBlacklist, AdUserClickCount}
+import commons.model.{AdBlacklist, AdStat, AdUserClickCount}
 import commons.utils.DateUtils
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
@@ -10,8 +10,8 @@ import org.apache.spark.sql.SparkSession
 import org.apache.spark.SparkConf
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.kafka010._
-import org.apache.spark.streaming.{Seconds, StreamingContext}
-import utils.{AdBlacklistDAO, AdUserClickCountDAO}
+import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
+import utils.{AdBlacklistDAO, AdStatDAO, AdUserClickCountDAO}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -87,8 +87,14 @@ object AdverStat {
     }
 
     //需求7：维护黑名单
-    generateBlackList(adRealTimeFilterDStream)
+    //    generateBlackList(adRealTimeFilterDStream)
 
+    //需求8：各省各城市一天中的广告点击量（累积统计 采用updateStateByKey）
+    //要是用updateStateByKey需要进行checkpoint
+    streamingContext.checkpoint("e:\\advert_checkpoint")
+    adRealTimeFilterDStream.checkpoint(Duration(10000))
+
+    provinceCityClickStat(adRealTimeFilterDStream)
 
 
     /*dataStream.map(row => (row.topic(), row.value())).foreachRDD{
@@ -111,6 +117,62 @@ object AdverStat {
 
     streamingContext.start();
     streamingContext.awaitTermination();
+  }
+
+  /**
+    * 获取省市每天的累计点击量
+    *
+    * @param adRealTimeFilterDStream
+    */
+  def provinceCityClickStat(adRealTimeFilterDStream: DStream[String]) = {
+    //adRealTimeFilterDStream为 timestamp + " " + province + " " + city + " " + userid + " " + adid
+    val provinceCity2OneDStream = adRealTimeFilterDStream.map {
+      row => {
+        val logSplit: Array[String] = row.split(" ")
+
+        val timestamp: Long = logSplit(0).toLong
+        val province: String = logSplit(1)
+        val city: String = logSplit(2)
+        val adid: String = logSplit(4)
+        //yyyyMM
+        val timeStr = DateUtils.formatDateKey(new Date(timestamp));
+        val key = province + "_" + city + "_" + adid + "_" + timeStr
+
+        (key, 1l)
+      }
+    }
+    val provinceAndCity2CountDStream: DStream[(String, Long)] = provinceCity2OneDStream.updateStateByKey[Long] {
+      (values: Seq[Long], state: Option[Long]) => {
+        var sum = values.sum;
+        if (state.isDefined) {
+          sum = sum + state.getOrElse(0l)
+        }
+        Option(sum)
+      }
+    }
+    provinceAndCity2CountDStream.foreachRDD {
+      rdd => {
+        rdd.foreachPartition {
+          val adStatArray = new ArrayBuffer[AdStat]()
+          items => {
+            //key:  province + "_" + city + "_" + adid + "_" + timeStr
+            //value:  count
+            for (item <- items) {
+              val logSplit: Array[String] = item._1.split("_")
+              val date = logSplit(3);
+              val province = logSplit(0);
+              val city = logSplit(1);
+              val adid = logSplit(2).toLong;
+
+              adStatArray += AdStat(date, province, city, adid, item._2);
+            }
+            //保存省市每天点击数据
+            AdStatDAO.updateBatch(adStatArray.toArray)
+          }
+        }
+      }
+    }
+
   }
 
   /**
