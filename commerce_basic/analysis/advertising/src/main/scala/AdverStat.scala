@@ -2,16 +2,17 @@ import java.util.Date
 
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{AdBlacklist, AdStat, AdUserClickCount}
+import commons.model.{AdBlacklist, AdProvinceTop3, AdStat, AdUserClickCount}
 import commons.utils.DateUtils
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
-import org.apache.spark.sql.SparkSession
+import org.apache.spark.sql.{DataFrame, Row, SparkSession}
 import org.apache.spark.SparkConf
+import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.kafka010._
 import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
-import utils.{AdBlacklistDAO, AdStatDAO, AdUserClickCountDAO}
+import utils.{AdBlacklistDAO, AdProvinceTop3DAO, AdStatDAO, AdUserClickCountDAO}
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -22,7 +23,7 @@ object AdverStat {
       //      .set("spark.serializer", "org.apache.spark.serializer.KryoSerializer")
       .set("spark.ui.port", "8999") //用于设置spark的ui端口，避免easyvpn端口4040冲突
 
-    val sqlSession = SparkSession.builder().config(sparkConf)
+    val sparkSession = SparkSession.builder().config(sparkConf)
       .config("hive.metastore.uris", "thrift://10.10.32.60:9083")
       //指定hive的warehouse目录
       .config("spark.sql.warehouse.dir", "hdfs://10.10.32.60:9000/user/hive/warehouse/commerce.db")
@@ -30,7 +31,7 @@ object AdverStat {
       .getOrCreate();
 
     //StreamingContext.getActiveOrCreate(checkpoint, func)
-    val streamingContext = new StreamingContext(sqlSession.sparkContext, Seconds(5))
+    val streamingContext = new StreamingContext(sparkSession.sparkContext, Seconds(5))
 
     val topicSet = Set(ConfigurationManager.config.getString(Constants.KAFKA_TOPICS))
     val kafkaParams = Map(
@@ -94,7 +95,10 @@ object AdverStat {
     streamingContext.checkpoint("e:\\advert_checkpoint")
     adRealTimeFilterDStream.checkpoint(Duration(10000))
 
-    provinceCityClickStat(adRealTimeFilterDStream)
+    val key2ProvinceCityCountDStream: DStream[(String, Long)] = provinceCityClickStat(adRealTimeFilterDStream)
+
+    //需求9、统计各省Top3热门广告
+    proveinceTope3Adver(sparkSession, key2ProvinceCityCountDStream)
 
 
     /*dataStream.map(row => (row.topic(), row.value())).foreachRDD{
@@ -120,11 +124,81 @@ object AdverStat {
   }
 
   /**
+    * 统计各省Top3热门广告
+    *
+    * @param sparkSession
+    * @param key2ProvinceCityCountDStream
+    */
+  def proveinceTope3Adver(sparkSession: SparkSession, key2ProvinceCityCountDStream: DStream[(String, Long)]) = {
+    //key:  province + "_" + city + "_" + adid + "_" + timeStr
+    //value:  count
+    val valCountLIst: DStream[(String, Long)] = key2ProvinceCityCountDStream.map {
+      row => {
+        val line: String = row._1.toString
+
+        val splitStr: Array[String] = line.split("_");
+        val province = splitStr(0);
+        val adid = splitStr(2);
+        val timeStr = splitStr(3);
+
+        (province + "_" + adid + "_" + timeStr, row._2)
+      }
+    }.reduceByKey(_ + _)
+    val transform: DStream[Row] = valCountLIst.transform {
+      row => {
+        val rdd: RDD[(String, String, Long, Long)] = row.map {
+          line => {
+            //province + "_" + adid + "_" + timeStr
+            val splitStr = line._1.split("_");
+            val province = splitStr(0);
+            val adid = splitStr(1).toLong;
+            val timeStr = splitStr(2);
+
+            (timeStr, province, adid, line._2)
+          }
+        }
+
+        import sparkSession.implicits._;
+        val df: DataFrame = rdd.toDF("date", "province", "adid", "count")
+        df.createOrReplaceTempView("tmp_basic_info")
+
+
+        val sql = "select date, province, adid, count from " +
+          "( select date, province, adid, count, " +
+          "row_number() over(partition by date, province order by count desc) rank from tmp_basic_info " +
+          ") t where rank <= 3";
+        sparkSession.sql(sql).rdd
+      }
+    }
+
+    transform.foreachRDD {
+      row => {
+        row.foreachPartition {
+          items => {
+            val top3Array = new ArrayBuffer[AdProvinceTop3]()
+
+            for (item <- items) {
+              val date = item.getAs[String]("date")
+              val province = item.getAs[String]("province")
+              val adid = item.getAs[Long]("adid")
+              val count = item.getAs[Long]("count")
+
+              top3Array += AdProvinceTop3(date, province, adid, count)
+            }
+
+            AdProvinceTop3DAO.updateBatch(top3Array.toArray)
+          }
+        }
+      }
+    }
+  }
+
+  /**
     * 获取省市每天的累计点击量
     *
     * @param adRealTimeFilterDStream
     */
-  def provinceCityClickStat(adRealTimeFilterDStream: DStream[String]) = {
+  def provinceCityClickStat(adRealTimeFilterDStream: DStream[String]): DStream[(String, Long)] = {
     //adRealTimeFilterDStream为 timestamp + " " + province + " " + city + " " + userid + " " + adid
     val provinceCity2OneDStream = adRealTimeFilterDStream.map {
       row => {
@@ -173,6 +247,7 @@ object AdverStat {
       }
     }
 
+    provinceAndCity2CountDStream
   }
 
   /**
