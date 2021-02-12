@@ -2,8 +2,9 @@ import java.util.Date
 
 import commons.conf.ConfigurationManager
 import commons.constant.Constants
-import commons.model.{AdBlacklist, AdProvinceTop3, AdStat, AdUserClickCount}
+import commons.model._
 import commons.utils.DateUtils
+import commons.utils.DateUtils.DATE_FORMAT
 import org.apache.kafka.clients.consumer.{ConsumerConfig, ConsumerRecord}
 import org.apache.kafka.common.serialization.StringDeserializer
 import org.apache.spark.sql.{DataFrame, Row, SparkSession}
@@ -11,8 +12,9 @@ import org.apache.spark.SparkConf
 import org.apache.spark.rdd.RDD
 import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.kafka010._
-import org.apache.spark.streaming.{Duration, Seconds, StreamingContext}
-import utils.{AdBlacklistDAO, AdProvinceTop3DAO, AdStatDAO, AdUserClickCountDAO}
+import org.apache.spark.streaming.{Duration, Minutes, Seconds, StreamingContext}
+import org.joda.time.DateTime
+import utils._
 
 import scala.collection.mutable.ArrayBuffer
 
@@ -92,14 +94,16 @@ object AdverStat {
 
     //需求8：各省各城市一天中的广告点击量（累积统计 采用updateStateByKey）
     //要是用updateStateByKey需要进行checkpoint
-    streamingContext.checkpoint("e:\\advert_checkpoint")
-    adRealTimeFilterDStream.checkpoint(Duration(10000))
+    //    streamingContext.checkpoint("e:\\advert_checkpoint")
+    //    adRealTimeFilterDStream.checkpoint(Duration(10000))
 
-    val key2ProvinceCityCountDStream: DStream[(String, Long)] = provinceCityClickStat(adRealTimeFilterDStream)
+    //    val key2ProvinceCityCountDStream: DStream[(String, Long)] = provinceCityClickStat(adRealTimeFilterDStream)
 
     //需求9、统计各省Top3热门广告
-    proveinceTope3Adver(sparkSession, key2ProvinceCityCountDStream)
+    //    proveinceTope3Adver(sparkSession, key2ProvinceCityCountDStream)
 
+    //需求10、最近一小时广告点击量
+    getRecentHourClickCount(adRealTimeFilterDStream);
 
     /*dataStream.map(row => (row.topic(), row.value())).foreachRDD{
       row1 => row1.foreachPartition{
@@ -121,6 +125,61 @@ object AdverStat {
 
     streamingContext.start();
     streamingContext.awaitTermination();
+  }
+
+  /**
+    * 最近一小时的广告点击量
+    *
+    * @param adRealTimeFilterDStream
+    */
+  def getRecentHourClickCount(adRealTimeFilterDStream: DStream[String]): Unit = {
+    //adRealTimeFilterDStream为 timestamp + " " + province + " " + city + " " + userid + " " + adid
+    val key2TimeMinuteDStream = adRealTimeFilterDStream.map {
+      line => {
+        val logSplit: Array[String] = line.split(" ")
+
+        val timestamp: Long = logSplit(0).toLong
+        //        val province: String = logSplit(1)
+        //        val city: String = logSplit(2)
+        val adid: String = logSplit(4)
+        //yyyyMM
+        val timeStr = DateUtils.formatTimeMinute(new Date(timestamp));
+        val key = adid + "_" + timeStr
+        (key, 1l)
+      }
+    }
+
+    //每分钟会执行一次，求出时间窗口长度的数据
+    val key2WindowDStream: DStream[(String, Long)] = key2TimeMinuteDStream.reduceByKeyAndWindow((value1: Long, value2: Long) => {
+      value1 + value2
+    }, Minutes(60), Minutes(1))
+
+    println(DateTime.now().toString(DateUtils.TIME_FORMAT))
+    key2WindowDStream.print()
+    key2WindowDStream.foreachRDD {
+      rdd => {
+        rdd.foreachPartition {
+          part => {
+            val trendArray = new ArrayBuffer[AdClickTrend]()
+            for (item <- part) {
+              //adid + "_" + timeStr
+              val keySplit: Array[String] = item._1.split("_")
+              val adid = keySplit(0).toLong;
+              val timeMinute = keySplit(1);
+
+              val date = timeMinute.substring(0, 8)
+              val hour = timeMinute.substring(8, 10)
+              val minute = timeMinute.substring(10)
+
+              trendArray += AdClickTrend(date, hour, minute, adid, item._2.toLong)
+            }
+
+            //数据保存
+            AdClickTrendDAO.updateBatch(trendArray.toArray)
+          }
+        }
+      }
+    }
   }
 
   /**
