@@ -27,7 +27,7 @@ object MockRealTimeData {
     val random = new Random()
     // 模拟实时数据：
     // timestamp province city userid adid
-    for (i <- 0 to 1) {
+    for (i <- 0 to 100) {
 
       val timestamp = System.currentTimeMillis()
       val province = random.nextInt(10)

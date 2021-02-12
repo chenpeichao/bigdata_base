@@ -124,7 +124,7 @@ object AdverStat {
   }
 
   /**
-    * 统计各省Top3热门广告
+    * 统计各省Top3热门广告---使用生成临时表并且进行开窗函数
     *
     * @param sparkSession
     * @param key2ProvinceCityCountDStream
@@ -144,6 +144,7 @@ object AdverStat {
         (province + "_" + adid + "_" + timeStr, row._2)
       }
     }.reduceByKey(_ + _)
+    //    valCountLIst.print()
     val transform: DStream[Row] = valCountLIst.transform {
       row => {
         val rdd: RDD[(String, String, Long, Long)] = row.map {
