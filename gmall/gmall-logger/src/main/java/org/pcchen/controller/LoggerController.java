@@ -3,6 +3,7 @@ package org.pcchen.controller;
 
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
+import org.pcchen.constants.GmallConstant;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.kafka.core.KafkaTemplate;
@@ -24,7 +25,6 @@ public class LoggerController {
     //@RequestMapping(value = "/log",method = RequestMethod.POST) =>
     @PostMapping("/log")
     public String dolog(@RequestParam("log") String logJson) {
-
         // 补时间戳
         JSONObject jsonObject = JSON.parseObject(logJson);
         jsonObject.put("ts", System.currentTimeMillis());
@@ -33,11 +33,11 @@ public class LoggerController {
         logger.info(jsonObject.toJSONString());
 
         // 发送kafka
-//        if("startup".equals(jsonObject.getString("type")) ){
-//            kafkaTemplate.send(GmallConstant.KAFKA_TOPIC_STARTUP,jsonObject.toJSONString());
-//        }else{
-//            kafkaTemplate.send(GmallConstant.KAFKA_TOPIC_EVENT,jsonObject.toJSONString());
-//        }
+        if ("startup".equals(jsonObject.getString("type"))) {
+            kafkaTemplate.send(GmallConstant.KAFKA_TOPIC_STARTUP, jsonObject.toJSONString());
+        } else {
+            kafkaTemplate.send(GmallConstant.KAFKA_TOPIC_EVENT, jsonObject.toJSONString());
+        }
         return "success";
     }
 
