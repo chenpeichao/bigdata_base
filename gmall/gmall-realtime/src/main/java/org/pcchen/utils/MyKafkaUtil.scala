@@ -27,10 +27,10 @@ object MyKafkaUtil {
     "group.id" -> "gmall_consumer_group",
     //如果没有初始化偏移量或者当前的偏移量不存在任何服务器上，可以使用这个配置属性
     //可以使用这个配置，latest自动重置偏移量为最新的偏移量
-    "auto.offset.reset" -> "latest",
+    "auto.offset.reset" -> "earliest",
     //如果是true，则这个消费者的偏移量会在后台自动提交,但是kafka宕机容易丢失数据
     //如果是false，会需要手动维护kafka偏移量
-    "enable.auto.commit" -> (true: java.lang.Boolean)
+    "enable.auto.commit" -> (false: java.lang.Boolean)
   )
 
   // 创建DStream，返回接收到的输入数据
