@@ -12,7 +12,7 @@ import org.apache.spark.streaming.dstream.{DStream, InputDStream}
 import org.apache.spark.streaming.{Seconds, StreamingContext}
 import org.pcchen.bean.StartUpLog
 import org.pcchen.constants.GmallConstant
-import org.pcchen.utils.{MyKafkaUtil, RedisUtil}
+import org.pcchen.utils.{MyESUtils, MyKafkaUtil, RedisUtil}
 import redis.clients.jedis.Jedis
 
 /**
@@ -23,7 +23,7 @@ import redis.clients.jedis.Jedis
   **/
 object DauApp {
   def main(args: Array[String]): Unit = {
-    val sparkConf: SparkConf = new SparkConf().setMaster("local[*]").setAppName("DauApp")
+    val sparkConf: SparkConf = new SparkConf().setMaster("local[3]").setAppName("DauApp")
 
     val ssc = new StreamingContext(sparkConf, Seconds(5));
 
@@ -51,19 +51,22 @@ object DauApp {
     //1.2、数据经过redis去重---不能直接使用filter，因executor中需要使用大数据对象jedis中的集合数据进行判断去重
     val avaliableStartUpLogStream: DStream[StartUpLog] = startUpLogStream.transform {
       rdd => {
+        println("过滤前数据量：" + rdd.count())
         val jedis: Jedis = RedisUtil.getJedisClient;
         val dateStr: String = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        val itemSet: util.Set[String] = jedis.smembers("dap_" + dateStr)
+        val itemSet: util.Set[String] = jedis.smembers("daf_" + dateStr)
 
         //大对象经过广播传递给executor
         val bdItemSet: Broadcast[util.Set[String]] = ssc.sparkContext.broadcast(itemSet)
-
-        rdd.filter {
+        jedis.close()
+        val filterRow = rdd.filter {
           startUpLog => {
             val setValue: util.Set[String] = bdItemSet.value;
             !setValue.contains(startUpLog.mid)
           }
         }
+        println("过滤后数据量：" + filterRow.count())
+        filterRow
       }
     }
 
@@ -76,18 +79,19 @@ object DauApp {
 
     //3、去重后数据进行redis保存以及es保存
     distinctStartUpLogStream.foreachRDD {
+      //driver
       rdd => {
         rdd.foreachPartition {
           part => {
-            //TODO:pcchen 下面两行写在part上有什么区别
             val jedis: Jedis = RedisUtil.getJedisClient;
             val dateStr: String = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
             val itemStartUpLog: List[StartUpLog] = part.toList;
 
             for (item <- itemStartUpLog) {
               jedis.sadd("day_" + dateStr, item.mid)
+              //日活数据保存到es中
             }
-
+            MyESUtils.saveBulkData2ES(itemStartUpLog)
             jedis.close()
           }
         }
