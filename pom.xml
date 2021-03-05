@@ -19,6 +19,7 @@
         <module>kafka</module>
         <module>Spark_Base</module>
         <module>gmall</module>
+        <module>Demo_Project</module>
     </modules>
 
 
