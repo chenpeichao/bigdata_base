@@ -123,7 +123,7 @@ public class JsonMocker {
         String appid = this.appId;
         String area = areaOptionGroup.getRandomOpt().getValue();
         String vs = vsOptionGroup.getRandomOpt().getValue();
-        //long ts= logDateUtil.getRandomDate().getTime();
+//        long ts= logDateUtil.getRandomDate().getTime();
         String ch = os.equals("ios") ? "appstore" : channelOptionGroup.getRandomOpt().getValue();
 
 
@@ -150,7 +150,7 @@ public class JsonMocker {
                 jsonMocker.sendLog(eventLog);
             }
             try {
-                Thread.sleep(20);
+                Thread.sleep(10);
             } catch (InterruptedException e) {
                 e.printStackTrace();
             }

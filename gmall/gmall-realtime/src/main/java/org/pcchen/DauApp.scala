@@ -54,7 +54,7 @@ object DauApp {
         println("过滤前数据量：" + rdd.count())
         val jedis: Jedis = RedisUtil.getJedisClient;
         val dateStr: String = new SimpleDateFormat("yyyy-MM-dd").format(new Date());
-        val itemSet: util.Set[String] = jedis.smembers("daf_" + dateStr)
+        val itemSet: util.Set[String] = jedis.smembers("dau_" + dateStr)
 
         //大对象经过广播传递给executor
         val bdItemSet: Broadcast[util.Set[String]] = ssc.sparkContext.broadcast(itemSet)
@@ -88,7 +88,7 @@ object DauApp {
             val itemStartUpLog: List[StartUpLog] = part.toList;
 
             for (item <- itemStartUpLog) {
-              jedis.sadd("day_" + dateStr, item.mid)
+              jedis.sadd("dau_" + dateStr, item.mid)
               //日活数据保存到es中
             }
             MyESUtils.saveBulkData2ES(itemStartUpLog)

@@ -5,7 +5,6 @@ import java.util.Objects
 import io.searchbox.client.config.HttpClientConfig
 import io.searchbox.client.{JestClient, JestClientFactory, JestResult}
 import io.searchbox.core._
-import org.pcchen.constants.PropertiesUtils
 
 object MyESUtils {
   //  private val ES_HOST = PropertiesUtils.getProperties("es.host")
@@ -71,6 +70,7 @@ object MyESUtils {
     val  source="{\n  \"name\":\"li4\",\n  \"age\":456,\n  \"amount\": 250.1,\n  \"phone_num\":\"138***2123\"\n}"
     val index: Index = new Index.Builder(source).index("gmall1205_test").`type`("_doc").build()
     jest.execute(index)*/
+    //批量插入---bulk
     close(jest)
   }
 
