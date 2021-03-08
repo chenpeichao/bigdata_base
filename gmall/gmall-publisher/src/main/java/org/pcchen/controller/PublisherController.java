@@ -26,4 +26,14 @@ public class PublisherController {
         resultMap.put("dauTotal", dauTotal);
         return resultMap;
     }
+
+    @GetMapping("/getDauHour")
+    @ResponseBody
+    public Map<String, Object> getDauHour(@RequestParam("searchDate") String searchDate) {
+        Map<String, Object> resultMap = new HashMap<String, Object>();
+
+        Map<String, Object> dauHourResult = publisherService.getDauHour(searchDate, "gmall_test");
+        resultMap.put("dauHour", dauHourResult);
+        return resultMap;
+    }
 }
