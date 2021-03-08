@@ -15,7 +15,7 @@ public class MyKafkaSender {
 
     public static KafkaProducer<String, String> createKafkaProducer() {
         Properties properties = new Properties();
-        properties.put("bootstrap.servers", "hadoop1:9092,hadoop2:9092,hadoop3:9092");
+        properties.put("bootstrap.servers", "10.10.32.60:9093,10.10.32.61:9093,10.10.32.62:9093");
         properties.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         properties.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
         KafkaProducer<String, String> producer = null;
@@ -33,7 +33,5 @@ public class MyKafkaSender {
             kafkaProducer = createKafkaProducer();
         }
         kafkaProducer.send(new ProducerRecord<String, String>(topic, msg));
-
-
     }
 }

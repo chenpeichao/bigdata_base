@@ -25,11 +25,8 @@ public class CanalHandler {
                     String propertyName = CaseFormat.LOWER_UNDERSCORE.to(CaseFormat.LOWER_CAMEL, column.getName());
                     jsonObject.put(propertyName, column.getValue());
                 }
-//                MyKafkaSender.send(GmallConstant.KAFKA_TOPIC_ORDER,jsonObject.toJSONString());
+                MyKafkaSender.send(GmallConstant.KAFKA_TOPIC_ORDER, jsonObject.toJSONString());
             }
-
         }
-
-
     }
 }
