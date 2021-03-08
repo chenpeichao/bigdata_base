@@ -17,6 +17,7 @@
         <module>gmall-mock</module>
         <module>gmall-realtime</module>
         <module>gmall-publisher</module>
+        <module>gmall-canal</module>
     </modules>
 
     <properties>
