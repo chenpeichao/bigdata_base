@@ -1,5 +1,6 @@
 package org.pcchen.controller;
 
+import org.pcchen.constants.GmallConstant;
 import org.pcchen.service.PublisherService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
@@ -22,7 +23,7 @@ public class PublisherController {
     public Map<String, Object> getDauTotal(@RequestParam("searchDate") String searchDate) {
         Map<String, Object> resultMap = new HashMap<String, Object>();
 
-        Integer dauTotal = publisherService.getDauTotal(searchDate, "gmall_test");
+        Integer dauTotal = publisherService.getDauTotal(searchDate, GmallConstant.ES_INDEX_DAU);
         resultMap.put("dauTotal", dauTotal);
         return resultMap;
     }

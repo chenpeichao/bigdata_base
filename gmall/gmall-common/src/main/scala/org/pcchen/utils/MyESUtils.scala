@@ -74,7 +74,7 @@ object MyESUtils {
     close(jest)
   }
 
-  def saveBulkData2ES(dataList: List[Any]) = {
+  def saveBulkData2ES(indexName: String, dataList: List[Any]) = {
     val jest: JestClient = getClient
 
     for (item <- dataList) {
@@ -82,7 +82,7 @@ object MyESUtils {
     }
     val bulkBuilder = new Bulk.Builder()
     for (doc <- dataList) {
-      val index: Index = new Index.Builder(doc).index("gmall_test").`type`("_doc").build()
+      val index: Index = new Index.Builder(doc).index(indexName).`type`("_doc").build()
       bulkBuilder.addAction(index)
     }
 

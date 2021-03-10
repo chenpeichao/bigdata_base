@@ -18,6 +18,7 @@
         <module>gmall-realtime</module>
         <module>gmall-publisher</module>
         <module>gmall-canal</module>
+        <module>gmall_export_sale</module>
     </modules>
 
     <properties>

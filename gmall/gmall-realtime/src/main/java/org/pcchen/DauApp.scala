@@ -91,7 +91,7 @@ object DauApp {
               jedis.sadd("dau_" + dateStr, item.mid)
               //日活数据保存到es中
             }
-            MyESUtils.saveBulkData2ES(itemStartUpLog)
+            MyESUtils.saveBulkData2ES(GmallConstant.ES_INDEX_DAU, itemStartUpLog)
             jedis.close()
           }
         }
