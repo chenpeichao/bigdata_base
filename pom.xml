@@ -20,6 +20,7 @@
         <module>Spark_Base</module>
         <module>gmall</module>
         <module>Demo_Project</module>
+        <module>Flink_Base</module>
     </modules>
 
 
