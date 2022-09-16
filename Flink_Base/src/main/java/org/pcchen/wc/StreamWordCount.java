@@ -2,6 +2,7 @@ package org.pcchen.wc;
 
 import org.apache.flink.api.common.typeinfo.Types;
 import org.apache.flink.api.java.tuple.Tuple2;
+import org.apache.flink.api.java.utils.ParameterTool;
 import org.apache.flink.streaming.api.datastream.DataStreamSource;
 import org.apache.flink.streaming.api.environment.StreamExecutionEnvironment;
 import org.apache.flink.util.Collector;
@@ -16,9 +17,13 @@ import java.util.Arrays;
  */
 public class StreamWordCount {
     public static void main(String[] args) throws Exception {
+        ParameterTool parameterTool = ParameterTool.fromArgs(args);
+        String host = parameterTool.get("host");
+        Integer port = parameterTool.getInt("port");
+
         StreamExecutionEnvironment streamEnv = StreamExecutionEnvironment.getExecutionEnvironment();
 
-        DataStreamSource<String> socketTextStream = streamEnv.socketTextStream("192.168.1.101", 7777);
+        DataStreamSource<String> socketTextStream = streamEnv.socketTextStream(host, port);
 
         socketTextStream.flatMap((String line, Collector<String> words) -> {
             Arrays.stream(line.split(" ")).forEach(words :: collect);
