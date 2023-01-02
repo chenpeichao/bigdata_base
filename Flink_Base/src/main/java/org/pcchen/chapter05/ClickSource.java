@@ -1,6 +1,5 @@
 package org.pcchen.chapter05;
 
-import com.sun.org.apache.xpath.internal.operations.Bool;
 import org.apache.flink.streaming.api.functions.source.SourceFunction;
 
 import java.util.Calendar;

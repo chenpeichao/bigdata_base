@@ -1,7 +1,6 @@
 package org.pcchen.chapter05;
 
 import java.sql.Timestamp;
-import java.util.Objects;
 
 /**
  * flink的测试bean
