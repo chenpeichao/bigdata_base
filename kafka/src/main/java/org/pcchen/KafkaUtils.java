@@ -1,88 +1,107 @@
 package org.pcchen;
 
-
-import kafka.admin.AdminClient;
-import kafka.coordinator.group.GroupOverview;
 import org.apache.kafka.clients.admin.*;
 import org.apache.kafka.common.KafkaFuture;
-import org.apache.kafka.common.Node;
-import org.apache.kafka.common.TopicPartition;
-import scala.Function1;
-import scala.Tuple2;
+import org.apache.kafka.common.TopicPartitionInfo;
 
 import java.util.*;
-import java.util.concurrent.ExecutionException;
-import java.util.concurrent.TimeUnit;
 
 /**
- * @author ceek
- * @create 2021-01-11 14:26
- **/
+ * kafka工具类
+ *
+ * @author: ceek
+ * @create: 2021-01-11 14:26
+ */
 public class KafkaUtils {
-    public static Set<String> getAllGroupsForTopic(String brokerListUrl, String topic) {
-
+    /**
+     * 获取kafka中所有topic信息
+     * @param brokerListUrl
+     * @return
+     */
+    public static Set<String> getAllTopics(String brokerListUrl) {
         Properties props = new Properties();
         // kafka servers
-        props.put("bootstrap.servers", "10.10.32.60:9093");
-//        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-//        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
-
-        // group
-//        props.put("enable.auto.commit", "false");
-//        props.put("auto.commit.interval.ms", "1000");
-//        props.put("key.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
-//        props.put("value.deserializer", "org.apache.kafka.common.serialization.StringDeserializer");
+        props.put("bootstrap.servers", brokerListUrl);
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
 
         org.apache.kafka.clients.admin.AdminClient client = KafkaAdminClient.create(props);
-//        AdminClient client = AdminClient.createSimplePlaintext(brokerListUrl);
 
-        ListTopicsResult listTopicsResult1 = client.listTopics();
-        try {
-            Collection<TopicListing> topicListings = listTopicsResult1.listings().get();
-        } catch (InterruptedException e) {
-            e.printStackTrace();
-        } catch (ExecutionException e) {
-            e.printStackTrace();
-        }
-
+        Set<String> topicSet = new HashSet<String>();
         try {
             ListTopicsResult listTopicsResult = client.listTopics();
             KafkaFuture<Collection<TopicListing>> listings = listTopicsResult.listings();
 
             Collection<TopicListing> topicListings = listings.get();
-            while (topicListings.iterator().hasNext()) {
-                TopicListing next = (TopicListing) topicListings.iterator().next();
-
+            Iterator<TopicListing> topicListingIterator = topicListings.iterator();
+            while (topicListingIterator.hasNext()) {
+                TopicListing topicListing = topicListingIterator.next();
+                System.out.println("topicname:" + topicListing.name());
             }
 
-            KafkaFuture<Set<String>> names = listTopicsResult.names();
-            System.out.println(names.get());
+            KafkaFuture<Set<String>> topicsKafkaFuture = listTopicsResult.names();
+            topicSet = topicsKafkaFuture.get();
+        } catch (Exception e) {
+            e.printStackTrace();
+        } finally {
+            return topicSet;
+        }
+    }
 
+    /**
+     * 获取kafka中所有消费者信息
+     * @param brokerListUrl
+     * @param topic
+     * @return
+     */
+    public static Set<String> getAllGroupsForTopic(String brokerListUrl, String topic) {
+        Properties props = new Properties();
+        // kafka servers
+        props.put("bootstrap.servers", brokerListUrl);
+        props.put("key.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+        props.put("value.serializer", "org.apache.kafka.common.serialization.StringSerializer");
+
+        Set<String> groupIdSet = new HashSet<String>();
+
+        org.apache.kafka.clients.admin.AdminClient client = KafkaAdminClient.create(props);
+        try {
             ListConsumerGroupsResult listConsumerGroupsResult = client.listConsumerGroups();
+
             KafkaFuture<Collection<ConsumerGroupListing>> all = listConsumerGroupsResult.all();
 
             Collection<ConsumerGroupListing> consumerGroupListings = all.get();
-            Collection<ConsumerGroupListing> consumerGroupListings1 = all.get(3, TimeUnit.SECONDS);
+//            Collection<ConsumerGroupListing> consumerGroupListings1 = all.get(3, TimeUnit.SECONDS);
 
-
-            try {
-                while (all.get().iterator().hasNext()) {
-                    ConsumerGroupListing next = all.get().iterator().next();
-                    System.out.println(next.toString());
-                    System.out.println(next.toString());
-                }
-            } catch (InterruptedException e) {
-                e.printStackTrace();
-            } catch (ExecutionException e) {
-                e.printStackTrace();
+            Iterator<ConsumerGroupListing> iterator1 = consumerGroupListings.iterator();
+            while (iterator1.hasNext()) {
+                ConsumerGroupListing next = iterator1.next();
+                System.out.println(next.toString());
+                groupIdSet.add(next.groupId());
             }
+            /*
+            //获取指定topic的partition等信息
+            DescribeTopicsResult describeTopicsResult = client.describeTopics(Arrays.asList(topic));
+            KafkaFuture<Map<String, TopicDescription>> all = describeTopicsResult.all();
+
+            Map<String, TopicDescription> stringTopicDescriptionMap = all.get();
+            Set<Map.Entry<String, TopicDescription>> entries = stringTopicDescriptionMap.entrySet();
+            Iterator<Map.Entry<String, TopicDescription>> iterator = entries.iterator();
+            for(; iterator.hasNext();) {
+                Map.Entry<String, TopicDescription> next1 = iterator.next();
+                String key = next1.getKey();
+                TopicDescription value = next1.getValue();
+                List<TopicPartitionInfo> partitions = value.partitions();
+                System.out.println(key + "===" + partitions.toString());
+            }*/
         } catch (Exception e) {
             e.printStackTrace();
+        } finally {
+            return groupIdSet;
         }
-        return null;
     }
 
     public static void main(String[] args) {
-        KafkaUtils.getAllGroupsForTopic("192.168.75.128:9092", "test_find");
+        KafkaUtils.getAllTopics("192.168.1.101:9092");
+//        KafkaUtils.getAllGroupsForTopic("192.168.1.101:9092", "clicks");
     }
 }
