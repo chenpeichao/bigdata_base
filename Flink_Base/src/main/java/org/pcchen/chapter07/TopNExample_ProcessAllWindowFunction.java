@@ -42,7 +42,7 @@ public class TopNExample_ProcessAllWindowFunction {
                 );
 
         stream.print();
-        stream      //定义华东窗口-每5秒滑动大小为10秒的窗口
+        stream      //定义滑动窗口-每5秒滑动大小为10秒的窗口
                 .windowAll(SlidingEventTimeWindows.of(Time.seconds(10), Time.seconds(5)))
                         .process(new ProcessAllWindowFunction<Event, String, TimeWindow>() {
                             @Override
