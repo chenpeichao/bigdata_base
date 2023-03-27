@@ -22,7 +22,7 @@ public class BoundedStreamWordCount {
         StreamExecutionEnvironment streamEnv = StreamExecutionEnvironment.getExecutionEnvironment();
 
         //2. 读取文件
-        DataStreamSource<String> lineDSSource = streamEnv.readTextFile("E:\\code\\github\\bigdata_base\\Flink_Base\\input\\word.txt");
+        DataStreamSource<String> lineDSSource = streamEnv.readTextFile("Flink_Base\\input\\word.txt");
 
         // 3. 转换数据格式
 //        SingleOutputStreamOperator<Tuple2<String, Long>> wordAndOneStream = lineDSSource.flatMap((String line, Collector<Tuple2<String, Long>> out) -> {

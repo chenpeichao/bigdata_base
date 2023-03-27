@@ -2,3 +2,14 @@ Alice, ./home, 1000
 Bob, ./cart, 2000
 Cary, ./prod?id=100, 3500
 Mary, ./prod?id=200, 4500
+Alice, ./home, 2000
+Bob, ./home, 6000
+Bob, ./prod?id=100, 7000
+Alice, ./home, 3000
+Alice, ./prod?id=300, 1500
+Cary, ./prod?id=100, 13500
+Bob, ./cart, 14000
+Bob, ./cart, 15000
+Cary, ./prod?id=100, 17000
+Alice, ./home, 5000
+Bob, ./cart, 20000

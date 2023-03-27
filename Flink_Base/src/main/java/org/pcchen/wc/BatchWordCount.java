@@ -21,7 +21,7 @@ public class BatchWordCount {
         ExecutionEnvironment env = ExecutionEnvironment.getExecutionEnvironment();
 
         //2、从文件中读取数据，按行读取(存储的数据就是每行的文本)
-        DataSource<String> lineDS = env.readTextFile("E:\\code\\github\\bigdata_base\\Flink_Base\\input\\word.txt");
+        DataSource<String> lineDS = env.readTextFile("Flink_Base\\input\\word.txt");
 
         //3、数据格式转换(扁平化处理)
         //  参数一：输入的数据类型
